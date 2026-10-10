@@ -1,34 +1,16 @@
 # TCC — hardware ASCON
 
-Core Ascon-128 v1.2 sem SPI/UART, derivado de [ASCON_SPI](https://github.com/LorenzoDonatti/ASCON_SPI), de Lorenzo Moreira Donatti, commit `77bb7b26ffa43d88790514d17318e47957c5edec`.
+Desenvolvimento de hardware Ascon-128 v1.2 e migração para Ascon-AEAD128. O core deriva de [ASCON_SPI](https://github.com/LorenzoDonatti/ASCON_SPI), de Lorenzo Moreira Donatti, commit `77bb7b26ffa43d88790514d17318e47957c5edec`.
 
 ## Estrutura
 
 - `src/`: RTL sintetizável, topo `ascon`.
-- `sim/`: testbench, vetores e executores.
+- `sim/`: testbenches e vetores.
 - `syn/`: fluxo Fusion Compiler e restrições.
-- `baselines/ascon-core-v1/`: referência congelada e checksums.
+- `baselines/ascon-core-v1/`: referência Ascon-128 v1.2.
 
-## Execução
+## Desenvolvimento
 
-Da raiz, com VCS, Fusion Compiler e licenças configurados:
+A baseline corresponde ao core direto sem SPI/UART, validado com 800 vetores. O histórico registra as alterações de infraestrutura, lógica, testes e documentação.
 
-1. Confira a integridade da baseline.
-
-   ```bash
-   (cd baselines/ascon-core-v1 && sha256sum --check SHA256SUMS)
-   ```
-
-2. Compile e simule os 800 vetores legados.
-
-   ```bash
-   ./sim/run_vcs.sh
-   ```
-
-3. Analise, elabore e verifique o RTL.
-
-   ```bash
-   ./syn/run_fc.sh
-   ```
-
-Sem bibliotecas NDM, a síntese termina nas checagens, sem mapeamento ou métricas PPA.
+A infraestrutura separa testbenches, ferramentas e listas, isola as execuções e reúne as restrições no SDC canônico. O upstream está referenciado por submódulo.

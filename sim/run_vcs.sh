@@ -2,7 +2,8 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-work_dir="${project_dir}/sim/work"
+source "$project_dir/sim/lib/common.sh"
+init_run active_v12
 
 mkdir -p "${work_dir}"
 cd "${project_dir}"
@@ -13,7 +14,7 @@ vcs \
   -timescale=1ns/1ps \
   -top ascon_tb \
   +define+CLK_HALF_PERIOD=50 \
-  -f sim/files.f \
+  -f sim/filelists/files.f \
   -Mdir="${work_dir}/csrc" \
   -o "${work_dir}/simv" \
   -l "${work_dir}/compile.log"
@@ -21,7 +22,6 @@ vcs \
 cd "${work_dir}"
 ./simv -l simulation.log
 
-if ! grep -Fq "[TB] TESTS FAILED:   0" simulation.log; then
-  echo "ASCON validation did not pass; inspect ${work_dir}/simulation.log" >&2
-  exit 1
-fi
+grep -Fxq '[TB] TESTS EXECUTED: 800' simulation.log
+grep -Fxq '[TB] TESTS PASSED:   800' simulation.log
+grep -Fxq '[TB] TESTS FAILED:   0' simulation.log

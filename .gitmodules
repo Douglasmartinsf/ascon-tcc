@@ -1,0 +1,3 @@
+[submodule "third_party/ASCON_SPI"]
+	path = third_party/ASCON_SPI
+	url = https://github.com/LorenzoDonatti/ASCON_SPI.git
