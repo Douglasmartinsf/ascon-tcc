@@ -32,3 +32,5 @@ Da raiz, com VCS, Fusion Compiler e licenças configurados:
    ```
 
 Sem bibliotecas NDM, a síntese termina nas checagens, sem mapeamento ou métricas PPA.
+
+A referência upstream é um submódulo fixado; obtenha-a com `git submodule update --init`. Execuções geradas ficam fora do versionamento.
