@@ -1,0 +1,70 @@
+# Instruções, configurações e estado local de assistentes de desenvolvimento
+[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]
+[Aa][Gg][Ee][Nn][Tt][Ss].override.[Mm][Dd]
+[Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]
+[Gg][Ee][Mm][Ii][Nn][Ii].[Mm][Dd]
+.agents/
+.agent/
+.codex/
+.claude/
+.cursor/
+.windsurf/
+.aider*
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md
+.github/instructions/
+.github/agents/
+.github/prompts/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Editores e sistema operacional
+.vscode/
+.idea/
+*~
+.DS_Store
+
+# Simulação HDL
+*.vcd
+*.fst
+*.wlf
+*.log
+*.jou
+*.key
+xcelium.d/
+INCA_libs/
+work/
+
+# Síntese e layout: diretórios temporários pesados
+results/**/work/
+results/**/tmp/
+results/**/logs/
+
+# Saídas regeneráveis do fluxo Synopsys
+sim/work/
+sim/reference/ascon-c/
+sim/*.log
+src/work/*
+!src/work/.gitkeep
+syn/log/*
+syn/mapped/*
+syn/netlist/*
+syn/unmapped/*
+!syn/log/.gitkeep
+!syn/mapped/.gitkeep
+!syn/netlist/.gitkeep
+!syn/unmapped/.gitkeep
+
+# Cadernos
+.ipynb_checkpoints/
+
+# Documentation build scratch (sources live in docs/tools/)
+/tmp/
+
+# Accidental Fusion Compiler outputs at the project root
+/default-*.svf
+/fc_output.txt

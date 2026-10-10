@@ -1,0 +1,18 @@
+Command: /home/douglas.figueiro/TCC/sim/work/./simv -l simulation.log
+Chronologic VCS simulator copyright 1991-2025
+Contains Synopsys proprietary information.
+Compiler version X-2025.06-SP2-5_Full64; Runtime version X-2025.06-SP2-5_Full64;  Aug 14 01:23 2026
+
+===========================================
+[TB] ASCON CORE COMPLETED
+[TB] TESTS EXECUTED: 800
+[TB] TESTS PASSED:   800
+[TB] TESTS FAILED:   0
+===========================================
+
+$finish called from file "sim/ascon_tb.sv", line 247.
+$finish at simulation time           5651150000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 5651150000 ps
+CPU Time:      0.380 seconds;       Data structure size:   0.1Mb
+Fri Aug 14 01:23:28 2026

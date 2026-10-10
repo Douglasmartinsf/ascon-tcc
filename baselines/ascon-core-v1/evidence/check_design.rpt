@@ -1,0 +1,31 @@
+****************************************
+ Report : check_design 
+ Options: { unbound netlist }
+ Design : ascon
+ Version: Y-2026.03-SP1
+ Date   : Fri Aug 14 01:23:56 2026
+****************************************
+
+Running atomic-check 'unbound'
+Running atomic-check 'netlist'
+
+  *** EMS Message summary ***
+  ----------------------------------------------------------------------------------------------------
+  Rule         Type   Count      Message
+  ----------------------------------------------------------------------------------------------------
+  DCHK-005     Warn   128        In design '%design', a pin '%object' on submodule '%parentObject...
+  DCHK-008     Warn   1          In design '%design', cell '%object' does not drive any nets.
+  DCHK-009     Warn   1          In design '%design', '%object' net '%parentObject' driven by %ex...
+  DCHK-026     Warn   631        In design '%design', port '%object' is connected to net '%parent...
+  DCHK-039     Warn   8153       In design '%design', cell '%object' is unmapped.
+  ----------------------------------------------------------------------------------------------------
+  Total 8914 EMS messages : 0 errors, 8914 warnings, 0 info.
+  ----------------------------------------------------------------------------------------------------
+
+  *** Non-EMS message summary ***
+  ----------------------------------------------------------------------------------------------------
+  Total 0 non-EMS messages : 0 errors, 0 warnings, 0 info.
+  ----------------------------------------------------------------------------------------------------
+
+Information: EMS database is saved to file 'check_design.ems'.
+1
