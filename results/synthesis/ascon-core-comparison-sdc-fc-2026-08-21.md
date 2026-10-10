@@ -28,10 +28,3 @@ aplicado em memória e `check_timing` foi executado:
 
 O clock `clock_i` foi reconhecido com período de 100 ns e waveform `{0 50}`.
 O relatório bruto está em `syn/log/check_timing_comparison_sdc.rpt`.
-
-## Política para a comparação final
-
-O RTL congelado de `ascon-core-v1` e o RTL futuro deverão ser sintetizados em
-áreas de trabalho independentes com o mesmo SDC ativo, a mesma biblioteca NDM,
-o mesmo corner e as mesmas opções do Fusion Compiler. Os artefatos dentro da
-baseline permanecem intactos e servem como evidência histórica.

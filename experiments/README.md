@@ -1,9 +1,8 @@
 # Experimentos
 
-- `configs/`: parâmetros versionados de cada execução.
-- `data/raw/`: dados brutos que não devem ser editados manualmente.
-- `data/processed/`: dados tratados e prontos para análise.
-- `notebooks/`: exploração e geração de gráficos.
+- `configs/`: parâmetros de execução.
+- `data/raw/`: dados coletados.
+- `data/processed/`: dados tratados para análise.
+- `notebooks/`: exploração e gráficos.
 
-Cada experimento deve registrar commit do código, ferramentas, tecnologia,
-frequência, parâmetros e comando de execução.
+Os experimentos relacionam versões do código, ferramentas, tecnologia, frequência e parâmetros utilizados no desenvolvimento.
