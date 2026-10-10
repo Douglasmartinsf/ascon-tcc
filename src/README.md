@@ -15,3 +15,5 @@ O adaptador do contador e o offset de Pc preservam v1.2. As primitivas novas est
 A suíte M1 verifica diretamente os estados e o controle das primitivas da etapa 2.
 
 A migração de AD/PT, padding, finalização e tag segue etapas próprias. Alterações em módulos novos não demonstram integração AEAD completa.
+
+`ascon_aead128_datapath` seleciona e registra estados de 320 bits; ainda não está ligado ao topo.
