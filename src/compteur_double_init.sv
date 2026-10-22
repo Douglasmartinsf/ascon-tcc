@@ -20,24 +20,15 @@ module compteur_double_init
     output logic [3 : 0] data_o
 );
 
-  logic [3:0] cpt_s;
-
-  always_ff @(posedge clock_i or negedge resetb_i) begin
-    if (resetb_i == 1'b0) begin
-      cpt_s <= 0;
-    end else begin
-      if (en_i == 1'b1) begin
-        if (init_a_i == 1'b1) begin
-          cpt_s <= 0;
-        end else if (init_b_i == 1'b1) begin
-          cpt_s <= 6;
-        end else cpt_s <= cpt_s + 1;
-      end
-    end
-  end
-
-  assign data_o = cpt_s;
+  // Compatibility adapter: retain the v1.2 FSM's enable and init priority.
+  ascon_round_counter counter (
+    .clock_i(clock_i),
+    .resetb_i(resetb_i),
+    .enable_i(en_i),
+    .load_i(en_i && (init_a_i || init_b_i)),
+    .first_i(init_a_i ? 4'd0 : 4'd6),
+    .round_o(data_o)
+  );
 
 endmodule : compteur_double_init
-
 
