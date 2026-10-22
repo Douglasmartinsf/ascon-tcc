@@ -1,5 +1,6 @@
 `include "ascon_pack.sv"
 `include "ascon_round_counter.sv"
+`include "ascon_permutation.sv"
 
 `include "ascon.sv"
 
