@@ -14,3 +14,5 @@ Desenvolvimento de hardware Ascon-128 v1.2 e migração para Ascon-AEAD128. O co
 A baseline corresponde ao core direto sem SPI/UART, validado com 800 vetores. O histórico registra as alterações de infraestrutura, lógica, testes e documentação.
 
 A infraestrutura separa testbenches, ferramentas e listas, isola as execuções e reúne as restrições no SDC canônico. O upstream está referenciado por submódulo.
+
+[Requisitos](docs/notas/etapa-1-requisitos.md) e [interface](docs/notas/etapa-1-interface.md) definem a migração.
