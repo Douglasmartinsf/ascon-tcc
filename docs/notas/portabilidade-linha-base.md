@@ -6,7 +6,7 @@ Core derivado de [ASCON_SPI](https://github.com/LorenzoDonatti/ASCON_SPI), de Lo
 
 A adaptação inicial corrigiu inclusões de módulos e caminhos do testbench e criou executores Synopsys. O topo SPI foi posteriormente substituído por `ascon`, sem UART/SPI; a referência original permanece em `third_party/ASCON_SPI`.
 
-## Evidências históricas
+## Resultados
 
 A versão com SPI elaborou 28 módulos e aprovou os 20 casos selecionados entre 800 vetores. Após remover SPI/UART, o core direto aprovou os 800 vetores e elaborou 14 módulos: `check_design` sem erros e `check_timing` sem mensagens. Não houve mapeamento tecnológico sem bibliotecas NDM.
 

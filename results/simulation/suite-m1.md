@@ -14,4 +14,4 @@ A suíte M1 reúne constantes, contador, permutação e inicialização em um te
 | Baseline e core ativo v1.2 | 800/800 vetores em cada regressão |
 | Checksums da baseline | Todos aprovados |
 
-A suíte retornou zero. Os vetores das primitivas permanecem separados dos KATs AEAD; o topo continua v1.2. Os relatórios e manifestos datados de 07/09/2026 registram a evidência histórica daquela execução.
+A suíte retornou zero. Os vetores das primitivas permanecem separados dos KATs AEAD; o topo continua v1.2. Os relatórios e manifestos datados de 07/09/2026 registram os resultados daquela execução.
