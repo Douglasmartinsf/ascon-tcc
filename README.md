@@ -21,4 +21,4 @@ A etapa 1 acrescenta conversões little-endian, transporte e verificação dos 1
 
 A etapa 2 implementa constantes, contador, permutação e inicialização padronizadas, verificadas isoladamente.
 
-A etapa 3 iniciou o registrador de estado de 320 bits. O topo ainda executa v1.2; AD/PT, finalização e tag padronizados dependem da integração.
+A etapa 3 implementa no novo datapath a absorção de blocos completos de 128 bits e a integração com p[8], com testes próprios contra a referência C. O topo ainda executa v1.2; o protocolo de AD/PT, padding, finalização e tag padronizados dependem da integração.

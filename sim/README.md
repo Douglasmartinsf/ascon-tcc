@@ -9,8 +9,11 @@
 | Core legado | 800 vetores, clock de 10 MHz |
 | Etapa 1 | Referência C, 1089 KATs, parser/transporte e conversões LE |
 | Etapa 2 | 5424 permutações, 46104 estados de rodada e 323 inicializações |
+| Datapath da etapa 3 | 515 sequências de três blocos, 1545 absorções e 12360 estados de rodada |
 
-As etapas 1 e 2 também incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh` e `./sim/run_stage3.sh` incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+
+`./sim/run_datapath_vcs.sh` verifica isoladamente carga, XOR de 128 bits, retenção, reset, pausas, comandos ocupado e p[8] encadeadas. Os vetores são gerados por `tools/datapath_reference.c` com a referência C fixada, incluindo padrões assimétricos, bits isolados e sequências de 48 bytes. O teste confere cada rodada e a escrita final; não executa padding nem AEAD completo.
 
 ## Organização das execuções
 
