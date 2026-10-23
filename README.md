@@ -20,3 +20,5 @@ A infraestrutura separa testbenches, ferramentas e listas, isola as execuções 
 A etapa 1 acrescenta conversões little-endian, transporte e verificação dos 1089 KATs com referência C.
 
 A etapa 2 implementa constantes, contador, permutação e inicialização padronizadas, verificadas isoladamente.
+
+A etapa 3 iniciou o registrador de estado de 320 bits. O topo ainda executa v1.2; AD/PT, finalização e tag padronizados dependem da integração.
