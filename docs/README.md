@@ -4,6 +4,7 @@
 - [Requisitos](notas/etapa-1-requisitos.md): diferenças entre v1.2 e Ascon-AEAD128.
 - [Interface](notas/etapa-1-interface.md): ordem de bytes e protocolo futuro.
 - [Permutação e inicialização](notas/etapa-2-primitiva-inicializacao.md): contratos dos módulos padronizados.
+- [Datapath de 128 bits e p[8]](notas/etapa-3-datapath.md): comandos, pausas e verificação direta.
 - [Organização](notas/organizacao-projeto.md): caminhos e executores.
 - [Ferramentas](tools/README.md): geração dos documentos em [output](../output/README.md).
 
