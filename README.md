@@ -18,3 +18,5 @@ A infraestrutura separa testbenches, ferramentas e listas, isola as execuções 
 [Requisitos](docs/notas/etapa-1-requisitos.md) e [interface](docs/notas/etapa-1-interface.md) definem a migração.
 
 A etapa 1 acrescenta conversões little-endian, transporte e verificação dos 1089 KATs com referência C.
+
+A etapa 2 implementa constantes, contador, permutação e inicialização padronizadas, verificadas isoladamente.
