@@ -4,6 +4,7 @@ module ascon_controller_tb;
   logic clock_s = 0, resetb_s = 0, enable_s = 1, init_s = 0;
   logic [127:0] key_s = 0, nonce_s = 0, data_s = 0;
   logic valid_s = 0, init_ready_s, data_ready_s, busy_s, init_done_s, block_done_s;
+  logic end_ad_s;
   type_state state_s;
   int initializations_s = 0, blocks_s = 0, round_checks_s = 0;
 
@@ -11,12 +12,15 @@ module ascon_controller_tb;
   ascon_aead128_controller dut (
     .clock_i(clock_s), .resetb_i(resetb_s), .enable_i(enable_s), .init_i(init_s),
     .key_i(key_s), .nonce_i(nonce_s), .data_i(data_s), .data_valid_i(valid_s),
+    .associate_data_i(1'b1), .data_bytes_i(5'd16), .data_last_i(1'b0),
     .init_ready_o(init_ready_s), .data_ready_o(data_ready_s), .busy_o(busy_s),
-    .end_initialisation_o(init_done_s), .block_done_o(block_done_s), .state_o(state_s)
+    .end_initialisation_o(init_done_s), .block_done_o(block_done_s),
+    .end_associate_o(end_ad_s), .state_o(state_s)
   );
 
   task automatic tick;
     @(posedge clock_s); #1;
+    if (end_ad_s !== 0) $fatal(1, "AD must remain open without last");
   endtask
 
   task automatic check_state(input type_state actual, expected, input string label);

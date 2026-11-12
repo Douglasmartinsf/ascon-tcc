@@ -11,8 +11,11 @@
 | Etapa 2 | 5424 permutações, 46104 estados de rodada e 323 inicializações |
 | Datapath da etapa 3 | 515 sequências de três blocos, 1545 absorções e 12360 estados de rodada |
 | Controlador da etapa 3 | 323 inicializações encadeadas a 969 blocos e 7752 estados de rodada |
+| AD da etapa 4 | 469 casos, 1933 transferências, 1959 permutações e 15672 estados de rodada |
 
-As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh` e `./sim/run_stage3.sh` incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh`, `./sim/run_stage3.sh` e `./sim/run_stage4.sh` incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+
+`./sim/run_ad_vcs.sh` verifica AD vazio, parcial, exato e multibloco, padding e separação de domínio. `tools/ad_reference.c` captura os estados do trace original de `aead.c`; o teste RTL compara cada absorção, rodada e estado ao encerrar AD. Há casos de 0 a 256 bytes, bytes inválidos altos não nulos, pausas, descritores inválidos, captura de entradas e aborto por reset.
 
 `./sim/run_controller_vcs.sh` verifica a integração da inicialização com três blocos de 16 bytes por transação. `tools/controller_reference.c` captura a inicialização, a absorção e as oito rodadas de cada bloco diretamente do trace de `aead.c`, sem alterar o checkout C. O teste cobre captura de entradas, prioridade de init, pedidos ocupado, pausas, conclusões de um ciclo, reinicialização e aborto por reset. Padding e fases AD/PT não são exercitados no RTL dessa suíte.
 

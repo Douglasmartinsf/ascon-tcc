@@ -1,5 +1,11 @@
 # Etapa 3 — integração da inicialização com o datapath
 
+Este documento registra o contrato de blocos completos da etapa 3. A
+[etapa 4](etapa-4-ad.md) estende o mesmo módulo com `associate_data_i`,
+`data_bytes_i`, `data_last_i` e `end_associate_o`. Para reproduzir o caminho
+de blocos completos deste documento, o teste fixa AD=1, bytes=16 e last=0.
+O contrato atual de encerramento, padding e transição de fase está na etapa 4.
+
 `ascon_aead128_controller` instancia `ascon_aead128_init` e
 `ascon_aead128_datapath`. A sequência é inicialização p[12], carga do estado
 inicializado e, para cada bloco aceito, XOR de 128 bits seguido por p[8].

@@ -3,8 +3,10 @@
 Contrato futuro das etapas 3–5; o topo atual mantém v1.2.
 
 A etapa 3 disponibiliza um [controlador interno de blocos completos](etapa-3-controlador.md)
-com interface parcial e reset ativo baixo. Os qualificadores de fase,
-comprimentos, last, ciphertext e tag abaixo ainda dependem das etapas 4–5.
+com interface parcial e reset ativo baixo. A [etapa 4](etapa-4-ad.md) implementa
+o qualificador AD, comprimento, last, padding e separação de domínio nesse
+controlador. PT, ciphertext, finalização, tag e o reset externo ativo alto
+abaixo ainda dependem da integração ao topo.
 
 ## Representação e sinais
 
