@@ -18,6 +18,16 @@ Planejamento original: 17/08–04/10/2026, sete semanas de 22 horas, total de 15
 | 6 | Truncamento, nonce masking e regressão | M3: opções e fronteiras verificadas |
 | 7 | Síntese e comparação | M4: resultados reproduzíveis e nova baseline |
 
+## Estado verificado
+
+As etapas 1–2 e a integração de blocos completos da etapa 3 passaram na suíte
+`./sim/run_stage3.sh`. O controlador conecta inicialização, absorção de 128 bits
+e p[8], conforme o [contrato](notas/etapa-3-controlador.md) e o
+[relatório](../results/simulation/etapa-3-controlador.md).
+O próximo passo é a etapa 4: controle de AD, padding e separação de domínio,
+com testes para AD vazio, parcial, exato e multibloco. O topo legado continua
+v1.2 e ainda não existe um core RTL AEAD128 completo.
+
 ## Escopo e dependências
 
 Modo básico: chave, nonce e tag de 128 bits; entradas alinhadas a bytes. Decriptação, Hash256, XOF128 e CXOF128 são extensões separadas, estimadas originalmente em 144 horas adicionais.
