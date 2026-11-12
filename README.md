@@ -21,4 +21,4 @@ A etapa 1 acrescenta conversões little-endian, transporte e verificação dos 1
 
 A etapa 2 implementa constantes, contador, permutação e inicialização padronizadas, verificadas isoladamente.
 
-A etapa 3 implementa no novo datapath a absorção de blocos completos de 128 bits e a integração com p[8], com testes próprios contra a referência C. O topo ainda executa v1.2; o protocolo de AD/PT, padding, finalização e tag padronizados dependem da integração.
+A etapa 3 integra inicialização, absorção de blocos completos de 128 bits e p[8] no módulo `ascon_aead128_controller`, com handshake e testes contra o trace da referência C. O [contrato do controlador](docs/notas/etapa-3-controlador.md) descreve captura de entradas, pausas e reset. O topo `ascon` ainda executa v1.2; o protocolo de AD/PT, padding, finalização e tag padronizados seguem nas próximas etapas.

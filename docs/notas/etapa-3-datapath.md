@@ -62,7 +62,9 @@ ocupado, captura de entradas e resets em quatro pontos da operação.
 Os comandos, contagens e evidências estão no
 [relatório de verificação](../../results/simulation/etapa-3-datapath-2026-10-23.md).
 
-Esta entrega verifica o caminho de blocos completos. O topo `ascon` continua
-v1.2. Não há controle das fases AD/PT, tratamento de comprimentos, ciphertext,
-padding, separação de domínio ou finalização no novo datapath. Portanto, ainda
-não demonstra AEAD128 completo nem encerra toda a integração da etapa 3.
+Esta entrega isolada verifica o caminho de blocos completos. A integração
+posterior com inicialização e handshake está no
+[controlador da etapa 3](etapa-3-controlador.md). O topo `ascon` continua v1.2.
+Não há controle das fases AD/PT, tratamento de comprimentos, ciphertext,
+padding, separação de domínio ou finalização no novo datapath. A integração
+de blocos completos não demonstra AEAD128 completo.

@@ -2,6 +2,10 @@
 
 Contrato futuro das etapas 3–5; o topo atual mantém v1.2.
 
+A etapa 3 disponibiliza um [controlador interno de blocos completos](etapa-3-controlador.md)
+com interface parcial e reset ativo baixo. Os qualificadores de fase,
+comprimentos, last, ciphertext e tag abaixo ainda dependem das etapas 4–5.
+
 ## Representação e sinais
 
 Byte j ocupa `bus[8*j +: 8]`. Bytes `00..0f` representam `128'h0f0e0d0c0b0a09080706050403020100`. KAT/JSON mantém a ordem original; nenhuma inversão dentro dos bytes.
