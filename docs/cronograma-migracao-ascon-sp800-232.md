@@ -20,13 +20,13 @@ Planejamento original: 17/08–04/10/2026, sete semanas de 22 horas, total de 15
 
 ## Estado verificado
 
-As etapas 1–2 e a integração de blocos completos da etapa 3 passaram na suíte
-`./sim/run_stage3.sh`. O controlador conecta inicialização, absorção de 128 bits
-e p[8], conforme o [contrato](notas/etapa-3-controlador.md) e o
-[relatório](../results/simulation/etapa-3-controlador.md).
-O próximo passo é a etapa 4: controle de AD, padding e separação de domínio,
-com testes para AD vazio, parcial, exato e multibloco. O topo legado continua
-v1.2 e ainda não existe um core RTL AEAD128 completo.
+As etapas 1–4 passaram na suíte `./sim/run_stage4.sh`. O controlador integra
+inicialização, absorção de 128 bits, p[8], padding de AD e separação de domínio,
+com testes para AD vazio, parcial, exato e multibloco. O
+[contrato de AD](notas/etapa-4-ad.md) e o
+[relatório](../results/simulation/etapa-4-ad.md) registram a entrega.
+O próximo passo é a etapa 5: PT, ciphertext, finalização e tag. O topo legado
+continua v1.2 e ainda não existe um core RTL AEAD128 completo.
 
 ## Escopo e dependências
 

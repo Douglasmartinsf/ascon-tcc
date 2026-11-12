@@ -21,4 +21,6 @@ A etapa 1 acrescenta conversões little-endian, transporte e verificação dos 1
 
 A etapa 2 implementa constantes, contador, permutação e inicialização padronizadas, verificadas isoladamente.
 
-A etapa 3 integra inicialização, absorção de blocos completos de 128 bits e p[8] no módulo `ascon_aead128_controller`, com handshake e testes contra o trace da referência C. O [contrato do controlador](docs/notas/etapa-3-controlador.md) descreve captura de entradas, pausas e reset. O topo `ascon` ainda executa v1.2; o protocolo de AD/PT, padding, finalização e tag padronizados seguem nas próximas etapas.
+A etapa 3 integra inicialização, absorção de blocos completos de 128 bits e p[8] no módulo `ascon_aead128_controller`, com handshake e testes contra o trace da referência C.
+
+A etapa 4 acrescenta [AD, padding e separação de domínio](docs/notas/etapa-4-ad.md), com comprimentos válidos, último bloco e tratamento de AD vazio, parcial, exato e multibloco. O topo `ascon` ainda executa v1.2; PT, ciphertext, finalização e tag padronizados seguem na etapa 5.
