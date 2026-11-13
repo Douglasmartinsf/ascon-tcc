@@ -25,8 +25,12 @@ inicialização, absorção de 128 bits, p[8], padding de AD e separação de do
 com testes para AD vazio, parcial, exato e multibloco. O
 [contrato de AD](notas/etapa-4-ad.md) e o
 [relatório](../results/simulation/etapa-4-ad.md) registram a entrega.
-O próximo passo é a etapa 5: PT, ciphertext, finalização e tag. O topo legado
-continua v1.2 e ainda não existe um core RTL AEAD128 completo.
+A primeira entrega da etapa 5 passou em `./sim/run_stage5_pt.sh`: PT vazio,
+parcial, exato e multibloco, ciphertext e estado com padding final, conforme
+o [contrato de PT](notas/etapa-5-pt.md) e o
+[relatório](../results/simulation/etapa-5-pt.md). A suíte inclui todas as
+regressões anteriores. O próximo passo é finalização e tag para atingir M2.
+O topo legado continua v1.2 e ainda não existe um core RTL AEAD128 completo.
 
 ## Escopo e dependências
 
