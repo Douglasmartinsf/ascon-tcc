@@ -1,4 +1,4 @@
-// Initialization, associated data and plaintext encryption. No finalization/tag.
+// Ascon-AEAD128 encryption: initialization, AD, PT, finalization and 128-bit tag.
 // Internal reset is active low; associate_data_i selects AD (1) or PT (0).
 module ascon_aead128_controller
   import ascon_pack::*;
@@ -14,6 +14,7 @@ module ascon_aead128_controller
   input logic associate_data_i,
   input logic [4:0] data_bytes_i,
   input logic data_last_i,
+  input logic finalisation_i,
   output logic init_ready_o,
   output logic data_ready_o,
   output logic busy_o,
@@ -24,11 +25,15 @@ module ascon_aead128_controller
   output logic [4:0] cipher_bytes_o,
   output logic cipher_valid_o,
   output logic end_cipher_o,
+  output logic finalisation_ready_o,
+  output logic [127:0] tag_o,
+  output logic end_tag_o,
   output type_state state_o
 );
   typedef enum logic [3:0] {
     IDLE, WAIT_INIT, LOAD_INIT, READY, ABSORB, START_P8, WAIT_P8,
-    DOMAIN_SEPARATE, AD_FINISHED, PT_FINISHED
+    DOMAIN_SEPARATE, AD_FINISHED, PT_FINISHED,
+    FINAL_KEY_FIRST, START_FINAL, WAIT_FINAL, FINAL_KEY_LAST, TAG_FINISHED
   } phase_t;
   phase_t phase_s;
   logic init_accept_s, data_accept_s;
@@ -41,11 +46,14 @@ module ascon_aead128_controller
   logic pt_s, pt_seen_s;
   logic [4:0] bytes_s;
   logic [127:0] cipher_s, rate_s;
+  logic [127:0] key_s;
+  logic finalisation_accept_s;
   type_state initial_s, load_state_s;
 
   assign init_ready_o = resetb_i && enable_i &&
                         ((phase_s == IDLE) || (phase_s == READY) ||
-                         (phase_s == AD_FINISHED) || (phase_s == PT_FINISHED));
+                         (phase_s == AD_FINISHED) || (phase_s == PT_FINISHED) ||
+                         (phase_s == TAG_FINISHED));
   // Initialization wins if both requests are presented while ready.
   assign descriptor_valid_s = (data_bytes_i == 5'd16) ||
                               (data_last_i && (data_bytes_i > 0) &&
@@ -57,8 +65,12 @@ module ascon_aead128_controller
                          ((phase_s == AD_FINISHED) && !associate_data_i));
   assign init_accept_s = init_i && init_ready_o;
   assign data_accept_s = data_valid_i && data_ready_o;
+  assign finalisation_ready_o = resetb_i && enable_i && (phase_s == PT_FINISHED) &&
+                                !init_i && !data_valid_i;
+  assign finalisation_accept_s = finalisation_i && finalisation_ready_o;
   assign busy_o = resetb_i && (phase_s != IDLE) && (phase_s != READY) &&
-                  (phase_s != AD_FINISHED) && (phase_s != PT_FINISHED);
+                  (phase_s != AD_FINISHED) && (phase_s != PT_FINISHED) &&
+                  (phase_s != TAG_FINISHED);
 
   // Ignore high bytes. In LE, the first unused byte receives 0x01 padding.
   always_comb begin
@@ -79,6 +91,14 @@ module ascon_aead128_controller
     if (phase_s == DOMAIN_SEPARATE) begin
       load_state_s = state_o;
       load_state_s[4] = state_o[4] ^ 64'h8000000000000000;
+    end else if (phase_s == FINAL_KEY_FIRST) begin
+      load_state_s = state_o;
+      load_state_s[2] = state_o[2] ^ key_s[63:0];
+      load_state_s[3] = state_o[3] ^ key_s[127:64];
+    end else if (phase_s == FINAL_KEY_LAST) begin
+      load_state_s = state_o;
+      load_state_s[3] = state_o[3] ^ key_s[63:0];
+      load_state_s[4] = state_o[4] ^ key_s[127:64];
     end
   end
 
@@ -91,21 +111,24 @@ module ascon_aead128_controller
   always_comb begin
     datapath_select_s = 2'b11;
     case (phase_s)
-      LOAD_INIT, DOMAIN_SEPARATE: datapath_select_s = 2'b00;
+      LOAD_INIT, DOMAIN_SEPARATE, FINAL_KEY_FIRST, FINAL_KEY_LAST: datapath_select_s = 2'b00;
       ABSORB: datapath_select_s = 2'b01;
-      START_P8: datapath_select_s = 2'b10;
+      START_P8, START_FINAL: datapath_select_s = 2'b10;
       default: ;
     endcase
   end
   assign datapath_enable_s = enable_i &&
                             ((phase_s == LOAD_INIT) || (phase_s == ABSORB) ||
                              (phase_s == START_P8) || (phase_s == WAIT_P8) ||
-                             (phase_s == DOMAIN_SEPARATE));
+                             (phase_s == DOMAIN_SEPARATE) ||
+                             (phase_s == FINAL_KEY_FIRST) || (phase_s == START_FINAL) ||
+                             (phase_s == WAIT_FINAL) || (phase_s == FINAL_KEY_LAST));
 
   ascon_aead128_datapath datapath (
     .clock_i(clock_i), .resetb_i(resetb_i),
     .enable_state_i(datapath_enable_s), .select_state_i(datapath_select_s),
     .initial_state_i(load_state_s), .data_i(data_s), .state_o(state_o),
+    .use_p12_i(phase_s == START_FINAL),
     .ready_o(), .busy_o(), .done_o(datapath_done_s)
   );
 
@@ -126,14 +149,18 @@ module ascon_aead128_controller
       end_initialisation_o <= 1'b0;
       block_done_o <= 1'b0;
       end_associate_o <= 1'b0;
+      key_s <= '0;
+      tag_o <= '0;
+      end_tag_o <= 1'b0;
     end else begin
       end_initialisation_o <= 1'b0;
       block_done_o <= 1'b0;
       end_associate_o <= 1'b0;
       cipher_valid_o <= 1'b0;
       end_cipher_o <= 1'b0;
+      end_tag_o <= 1'b0;
       case (phase_s)
-        IDLE, READY, AD_FINISHED, PT_FINISHED: begin
+        IDLE, READY, AD_FINISHED, PT_FINISHED, TAG_FINISHED: begin
           if (init_accept_s) begin
             phase_s <= WAIT_INIT;
             ad_seen_s <= 1'b0;
@@ -142,7 +169,10 @@ module ascon_aead128_controller
             pt_s <= 1'b0;
             pt_seen_s <= 1'b0;
             bytes_s <= '0;
+            key_s <= key_i;
+            tag_o <= '0;
           end
+          else if (finalisation_accept_s) phase_s <= FINAL_KEY_FIRST;
           else if (data_accept_s) begin
             data_s <= padded_data_s;
             last_s <= data_last_i;
@@ -199,6 +229,15 @@ module ascon_aead128_controller
           phase_s <= AD_FINISHED;
           block_done_o <= 1'b1;
           end_associate_o <= 1'b1;
+        end
+        FINAL_KEY_FIRST: if (enable_i) phase_s <= START_FINAL;
+        START_FINAL: if (enable_i) phase_s <= WAIT_FINAL;
+        WAIT_FINAL: if (datapath_done_s) phase_s <= FINAL_KEY_LAST;
+        FINAL_KEY_LAST: if (enable_i) begin
+          // Byte zero of the tag is byte zero of post-key-xor word 3 (LE).
+          tag_o <= {load_state_s[4], load_state_s[3]};
+          end_tag_o <= 1'b1;
+          phase_s <= TAG_FINISHED;
         end
         default: phase_s <= IDLE;
       endcase

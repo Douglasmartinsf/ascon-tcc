@@ -29,8 +29,13 @@ A primeira entrega da etapa 5 passou em `./sim/run_stage5_pt.sh`: PT vazio,
 parcial, exato e multibloco, ciphertext e estado com padding final, conforme
 o [contrato de PT](notas/etapa-5-pt.md) e o
 [relatório](../results/simulation/etapa-5-pt.md). A suíte inclui todas as
-regressões anteriores. O próximo passo é finalização e tag para atingir M2.
-O topo legado continua v1.2 e ainda não existe um core RTL AEAD128 completo.
+regressões anteriores. O complemento de finalização e tag passou em
+`./sim/run_stage5.sh`, atingindo M2 no controlador: ciphertext e tag iguais
+aos 1089 KATs completos e à referência C nas 1558 transações. O
+[contrato de finalização](notas/etapa-5-finalizacao.md) e o
+[relatório M2](../results/simulation/etapa-5-finalizacao.md) registram a entrega.
+O topo legado continua v1.2 e sua integração permanece separada. Truncamento,
+nonce masking e novas opções de regressão pertencem à etapa 6.
 
 ## Escopo e dependências
 

@@ -14,6 +14,7 @@ module ascon_ad_tb;
     .clock_i(clock_s), .resetb_i(resetb_s), .enable_i(enable_s), .init_i(init_s),
     .key_i(key_s), .nonce_i(nonce_s), .data_i(data_s), .data_valid_i(valid_s),
     .associate_data_i(associate_s), .data_bytes_i(bytes_s), .data_last_i(last_s),
+    .finalisation_i(1'b0), .finalisation_ready_o(), .tag_o(), .end_tag_o(),
     .init_ready_o(init_ready_s), .data_ready_o(ready_s), .busy_o(busy_s),
     .end_initialisation_o(init_done_s), .block_done_o(block_done_s),
     .end_associate_o(end_ad_s), .state_o(state_s),

@@ -1,11 +1,15 @@
 `timescale 1ns/1ps
-module ascon_pt_tb;
+module ascon_pt_tb #(parameter bit TEST_FINALIZATION = 1'b0);
   import ascon_pack::*;
   logic clock_s = 0, resetb_s = 0, enable_s = 1, init_s = 0;
   logic [127:0] key_s = 0, nonce_s = 0, data_s = 0, cipher_s;
   logic valid_s = 0, associate_s = 1, last_s = 0;
   logic [4:0] bytes_s = 16, cipher_bytes_s;
   logic init_ready_s, ready_s, busy_s, init_done_s, block_done_s, end_ad_s, end_pt_s, cipher_valid_s;
+  logic finalisation_s = 0, final_ready_s, end_tag_s;
+  logic [127:0] tag_s, expected_tag_s;
+  logic tag_expected_s = 0, early_final_s = 0;
+  int tags_s = 0, final_rounds_s = 0;
   type_state state_s;
   logic cipher_expected_s = 0, recording_s = 0;
   logic [127:0] expected_cipher_s;
@@ -17,6 +21,8 @@ module ascon_pt_tb;
     .clock_i(clock_s), .resetb_i(resetb_s), .enable_i(enable_s), .init_i(init_s),
     .key_i(key_s), .nonce_i(nonce_s), .data_i(data_s), .data_valid_i(valid_s),
     .associate_data_i(associate_s), .data_bytes_i(bytes_s), .data_last_i(last_s),
+    .finalisation_i(finalisation_s), .finalisation_ready_o(final_ready_s),
+    .tag_o(tag_s), .end_tag_o(end_tag_s),
     .init_ready_o(init_ready_s), .data_ready_o(ready_s), .busy_o(busy_s),
     .end_initialisation_o(init_done_s), .block_done_o(block_done_s),
     .end_associate_o(end_ad_s), .end_cipher_o(end_pt_s), .state_o(state_s),
@@ -34,6 +40,15 @@ module ascon_pt_tb;
       if (recording_s) begin
         for (int b = 0; b < expected_bytes_s; b++) $fwrite(actual_fd_s, "%02h", cipher_s[8*b +: 8]);
         cipher_blocks_s++;
+      end
+    end
+    if (end_tag_s) begin
+      if (!tag_expected_s || tag_s !== expected_tag_s)
+        $fatal(1, "Unexpected/incorrect tag case=%0d got=%032h expected=%032h", cases_s, tag_s, expected_tag_s);
+      tag_expected_s = 0;
+      if (recording_s) begin
+        for (int b = 0; b < 16; b++) $fwrite(actual_fd_s, "%02h", tag_s[8*b +: 8]);
+        tags_s++;
       end
     end
   end
@@ -55,7 +70,7 @@ module ascon_pt_tb;
   task automatic check_busy(input bit allow_cipher = 0);
     if (busy_s !== 1 || init_ready_s !== 0 || ready_s !== 0 || init_done_s !== 0 ||
         block_done_s !== 0 || end_ad_s !== 0 || end_pt_s !== 0 ||
-        (!allow_cipher && cipher_valid_s !== 0))
+        end_tag_s !== 0 || final_ready_s !== 0 || (!allow_cipher && cipher_valid_s !== 0))
       $fatal(1, "AD/PT busy mismatch phase=%0d", dut.phase_s);
   endtask
 
@@ -88,25 +103,27 @@ module ascon_pt_tb;
   endtask
 
   task automatic reset_and_check;
-    @(negedge clock_s); #2; resetb_s = 0; cipher_expected_s = 0; #1;
+    @(negedge clock_s); #2; resetb_s = 0; cipher_expected_s = 0; tag_expected_s = 0; #1;
     check_state(state_s, '0, "reset state");
     check_state(dut.datapath.permuted_s, '0, "reset permutation");
     if (cipher_s !== 0 || cipher_bytes_s !== 0 || cipher_valid_s !== 0 ||
         end_pt_s !== 0 || end_ad_s !== 0 || block_done_s !== 0 || init_done_s !== 0 ||
         ready_s !== 0 || init_ready_s !== 0 || busy_s !== 0 || dut.pt_s !== 0 ||
-        dut.pt_seen_s !== 0 || dut.bytes_s !== 0 || dut.extra_padding_s !== 0)
+        dut.pt_seen_s !== 0 || dut.bytes_s !== 0 || dut.extra_padding_s !== 0 ||
+        tag_s !== 0 || end_tag_s !== 0 || final_ready_s !== 0 || dut.key_s !== 0)
       $fatal(1, "Reset did not clear PT controls/outputs");
     @(negedge clock_s);
-    resetb_s = 1; enable_s = 1; init_s = 0; valid_s = 1;
+    resetb_s = 1; enable_s = 1; init_s = 0; valid_s = 1; finalisation_s = 1;
     associate_s = 0; bytes_s = 16; last_s = 0;
     repeat (20) begin
       tick();
       check_state(state_s, '0, "no stale result after PT abort");
       if (cipher_valid_s !== 0 || end_pt_s !== 0 || end_ad_s !== 0 || block_done_s !== 0 ||
-          init_done_s !== 0 || ready_s !== 0 || init_ready_s !== 1 || busy_s !== 0)
+          init_done_s !== 0 || ready_s !== 0 || init_ready_s !== 1 || busy_s !== 0 ||
+          tag_s !== 0 || end_tag_s !== 0 || final_ready_s !== 0)
         $fatal(1, "Stale PT completion or data accepted before init");
     end
-    @(negedge clock_s); valid_s = 0;
+    @(negedge clock_s); valid_s = 0; finalisation_s = 0;
   endtask
 
   task automatic initialize(input logic [127:0] key_value, nonce_value,
@@ -115,16 +132,18 @@ module ascon_pt_tb;
     held = state_s;
     @(negedge clock_s);
     enable_s = 1; init_s = 1; valid_s = 1; associate_s = 1; bytes_s = 16; last_s = 0;
+    finalisation_s = TEST_FINALIZATION;
     key_s = key_value; nonce_s = nonce_value;
     #1;
     if (init_ready_s !== 1 || ready_s !== 0) $fatal(1, "Init priority");
     tick(); check_busy();
+    if (tag_s !== 0) $fatal(1, "New init must clear the previous tag");
     @(negedge clock_s); key_s = ~key_value; nonce_s = ~nonce_value;
     if (paused) enable_s = 0;
     repeat (paused ? 18 : 14) begin
       tick(); check_busy(); check_state(state_s, held, "init retains old state");
     end
-    @(negedge clock_s); enable_s = 1; init_s = 0; valid_s = 0;
+    @(negedge clock_s); enable_s = 1; init_s = 0; valid_s = 0; finalisation_s = 0;
     tick();
     check_state(state_s, expected, "initialized state vs C");
     if (init_done_s !== 1 || block_done_s !== 0 || end_ad_s !== 0 || end_pt_s !== 0 ||
@@ -157,6 +176,7 @@ module ascon_pt_tb;
     enable_s = 1; valid_s = 1; init_s = 1; associate_s = !associate_s;
     data_s = ~data_s; bytes_s = 31; last_s = !last_s;
     key_s = '1; nonce_s = '1;
+    finalisation_s = TEST_FINALIZATION;
   endtask
 
   task automatic run_full_operation(input int fd, input bit pt_value, paused, report_completion, pause_retirement);
@@ -206,12 +226,14 @@ module ascon_pt_tb;
     if (end_pt_s !== 1 || block_done_s !== 1 || end_ad_s !== 0 || busy_s !== 0 ||
         cipher_valid_s !== emits_cipher || cipher_expected_s || ready_s !== 0)
       $fatal(1, "Final PT confirmation/ciphertext");
-    // A pause immediately after an emitted fragment clears the pulse.
-    @(negedge clock_s); enable_s = 0; init_s = 0;
-    repeat (3) begin
-      tick(); check_state(state_s, expected, "PT final state retention");
-      if (end_pt_s !== 0 || block_done_s !== 0 || cipher_valid_s !== 0 || busy_s !== 0 || ready_s !== 0)
-        $fatal(1, "PT completion repeated during pause");
+    if (!early_final_s) begin
+      // A pause immediately after an emitted fragment clears the pulse.
+      @(negedge clock_s); enable_s = 0; init_s = 0;
+      repeat (3) begin
+        tick(); check_state(state_s, expected, "PT final state retention");
+        if (end_pt_s !== 0 || block_done_s !== 0 || cipher_valid_s !== 0 || busy_s !== 0 || ready_s !== 0)
+          $fatal(1, "PT completion repeated during pause");
+      end
     end
   endtask
 
@@ -241,14 +263,133 @@ module ascon_pt_tb;
     end
   endtask
 
+  task automatic finalize(input type_state expected[0:13], input logic [127:0] expected_tag,
+                          input bit paused, immediate);
+    type_state held;
+    logic [127:0] held_tag;
+    held = state_s; held_tag = tag_s;
+    expected_tag_s = expected_tag; tag_expected_s = 1;
+    if (!immediate) begin
+      // Simultaneous data and disabled requests must never finalize.
+      @(negedge clock_s);
+      enable_s = 1; init_s = 0; valid_s = 1; finalisation_s = 1;
+      repeat (2) begin
+        tick(); check_state(state_s, held, "finalization with data rejected");
+        if (final_ready_s !== 0 || busy_s !== 0 || end_tag_s !== 0 || tag_s !== held_tag ||
+            block_done_s !== 0 || end_pt_s !== 0 || cipher_valid_s !== 0)
+          $fatal(1, "Finalization accepted with simultaneous data");
+      end
+      @(negedge clock_s); enable_s = 0; valid_s = 0;
+      repeat (3) begin
+        tick(); check_state(state_s, held, "disabled finalization holds state");
+        if (final_ready_s !== 0 || busy_s !== 0 || end_tag_s !== 0 || tag_s !== held_tag)
+          $fatal(1, "Disabled finalization accepted");
+      end
+    end
+    @(negedge clock_s);
+    enable_s = 1; init_s = 0; valid_s = 0; finalisation_s = 1;
+    #1;
+    if (final_ready_s !== 1) $fatal(1, "Finalization not ready after PT");
+    tick(); check_busy(); check_state(state_s, held, "finalization acceptance before XOR");
+    if (paused) pause_busy();
+    @(negedge clock_s); poison_inputs();
+    tick(); check_busy();
+    check_state(state_s, expected[0], "first final key XOR vs C");
+    if (paused) pause_busy();
+    @(negedge clock_s); enable_s = 1;
+    tick(); check_busy();
+    check_state(dut.datapath.permuted_s, expected[0], "p[12] captures keyed state");
+    if (dut.datapath.permutation.round_s !== 4) $fatal(1, "p[12] initial index");
+    for (int r = 0; r < 12; r++) begin
+      if (paused && (r == 0 || r == 6 || r == 11)) pause_busy();
+      @(negedge clock_s); enable_s = 1;
+      tick(); check_busy();
+      check_state(dut.datapath.permuted_s, expected[r+1], "final p[12] round vs C");
+      check_state(state_s, expected[0], "hold keyed state until p[12] writeback");
+      if (dut.datapath.permutation.round_s !== 4'(r == 11 ? 15 : 5+r))
+        $fatal(1, "Final p[12] round sequence");
+      if (tag_s !== held_tag) $fatal(1, "Tag changed before final XOR");
+      if (recording_s) final_rounds_s++;
+    end
+    if (paused) pause_busy();
+    @(negedge clock_s); enable_s = 1;
+    tick(); check_busy(); check_state(state_s, expected[12], "p[12] writeback vs C");
+    @(negedge clock_s); enable_s = !paused;
+    tick(); check_busy(); check_state(state_s, expected[12], "p[12] retirement");
+    if (paused) pause_busy();
+    @(negedge clock_s); enable_s = 1; init_s = 0; valid_s = 0;
+    tick(); check_state(state_s, expected[13], "second final key XOR vs C");
+    if (end_tag_s !== 1 || tag_s !== expected_tag || tag_expected_s || busy_s !== 0 ||
+        init_ready_s !== 1 || final_ready_s !== 0 || ready_s !== 0 || cipher_valid_s !== 0 ||
+        end_ad_s !== 0 || end_pt_s !== 0 || block_done_s !== 0)
+      $fatal(1, "Tag publication/status");
+    // Keep finalisation high after completion. Neither pause nor resume may
+    // repeat finalization, emit ciphertext or lose the published tag.
+    for (int cycle = 0; cycle < 5; cycle++) begin
+      @(negedge clock_s); enable_s = cycle >= 2;
+      tick(); check_state(state_s, expected[13], "completed final state retention");
+      if (end_tag_s !== 0 || tag_s !== expected_tag || final_ready_s !== 0 || busy_s !== 0 ||
+          cipher_valid_s !== 0 || block_done_s !== 0 || end_pt_s !== 0 || end_ad_s !== 0)
+        $fatal(1, "Repeated finalization or tag lost during pause");
+    end
+    @(negedge clock_s); finalisation_s = 0;
+  endtask
+
+  task automatic prepare_empty_pt(input logic [127:0] key_value, nonce_value,
+                                  input type_state initialized, separated, tail);
+    initialize(key_value, nonce_value, initialized, 0);
+    accept_transfer('1, 0, 1, 1, 0); finish_ad(separated, 0);
+    cipher_expected_s = 0;
+    accept_transfer('1, 0, 1, 0, 0); finish_pt(tail, 0, 0);
+  endtask
+
+  task automatic check_final_resets(input logic [127:0] key_value, nonce_value,
+                                   input type_state initialized, separated, tail,
+                                   input type_state expected[0:13], input logic [127:0] expected_tag);
+    int steps;
+    early_final_s = 0;
+    for (int phase = 0; phase < 10; phase++) begin
+      prepare_empty_pt(key_value, nonce_value, initialized, separated, tail);
+      expected_tag_s = expected_tag; tag_expected_s = 1;
+      @(negedge clock_s); enable_s = 1; init_s = 0; valid_s = 0; finalisation_s = 1;
+      #1;
+      if (final_ready_s !== 1) $fatal(1, "Final reset setup");
+      tick(); check_busy();
+      steps = phase == 0 ? 0 : phase == 1 ? 1 : phase == 2 ? 2 : phase == 3 ? 3 :
+              phase == 4 ? 8 : phase == 5 || phase == 9 ? 14 : phase == 6 ? 15 :
+              phase == 7 ? 16 : 17;
+      if (steps) begin
+        @(negedge clock_s); finalisation_s = 0;
+        repeat (steps) tick();
+      end
+      if (phase == 7 || phase == 9) pause_busy();
+      reset_and_check();
+    end
+    // Init wins over finalization while PT_FINISHED, then the same key/nonce
+    // can complete a fresh full transaction without reset.
+    prepare_empty_pt(key_value, nonce_value, initialized, separated, tail);
+    initialize(key_value, nonce_value, initialized, 0);
+    accept_transfer('1, 0, 1, 1, 0); finish_ad(separated, 0);
+    accept_transfer('1, 0, 1, 0, 0); finish_pt(tail, 0, 0);
+    finalize(expected, expected_tag, 1, 0);
+  endtask
+
   task automatic check_vectors;
-    int fd, total, id, alen, plen, ad_count, pt_count, bytes_value, last_value;
+    int fd, final_fd, final_total, final_id, total, id, alen, plen, ad_count, pt_count, bytes_value, last_value;
     logic [127:0] key_value, nonce_value, value, cipher_value;
+    logic [127:0] expected_tag;
     type_state initialized, separated, tail;
+    type_state final_expected[0:13];
     bit paused;
     string trailing;
-    fd = $fopen("pt.txt", "r"); actual_fd_s = $fopen("pt_actual.txt", "w");
+    fd = $fopen("pt.txt", "r");
+    actual_fd_s = $fopen(TEST_FINALIZATION ? "aead_actual.txt" : "pt_actual.txt", "w");
     if (!fd || !actual_fd_s || $fscanf(fd, "%d\n", total) != 1 || total != 1558) $fatal(1, "Invalid PT corpus");
+    if (TEST_FINALIZATION) begin
+      final_fd = $fopen("finalizations.txt", "r");
+      if (!final_fd || $fscanf(final_fd, "%d\n", final_total) != 1 || final_total != total)
+        $fatal(1, "Invalid finalization corpus");
+    end
     for (int sample = 0; sample < total; sample++) begin
       if ($fscanf(fd, "%d %d %d %d %d\n", id, alen, plen, ad_count, pt_count) != 5 || id != sample ||
           alen < 0 || alen > 256 || plen < 0 || plen > 256 ||
@@ -259,6 +400,7 @@ module ascon_pt_tb;
       initialize(key_value, nonce_value, initialized, sample % 23 == 0);
       if (sample == 0) reject_descriptor(16, 0, 0);
       paused = sample % 17 == 0;
+      early_final_s = TEST_FINALIZATION && (sample % 5 == 0);
       for (int transfer = 0; transfer < ad_count; transfer++) begin
         if ($fscanf(fd, "%d %d %h\n", bytes_value, last_value, value) != 3 ||
             bytes_value != (alen == 0 ? 0 : alen-16*transfer >= 16 ? 16 : alen-16*transfer) ||
@@ -277,7 +419,7 @@ module ascon_pt_tb;
         end
         reject_descriptor(16, 0, 1);
       end
-      $fwrite(actual_fd_s, "%0d %0d ", sample, plen); recording_s = 1;
+      $fwrite(actual_fd_s, "%0d %0d ", sample, plen + (TEST_FINALIZATION ? 16 : 0)); recording_s = 1;
       for (int transfer = 0; transfer < pt_count; transfer++) begin
         if ($fscanf(fd, "%d %d %h\n", bytes_value, last_value, value) != 3 ||
             bytes_value != (plen == 0 ? 0 : plen-16*transfer >= 16 ? 16 : plen-16*transfer) ||
@@ -289,20 +431,34 @@ module ascon_pt_tb;
         if (last_value) begin
           read_state(fd, tail);
           finish_pt(tail, bytes_value > 0 && bytes_value < 16, paused);
-          reject_descriptor(16, 0, 0); reject_descriptor(16, 0, 1);
+          if (!early_final_s) begin
+            reject_descriptor(16, 0, 0); reject_descriptor(16, 0, 1);
+          end
         end else if (plen == 17 && transfer == 0) begin
           reject_descriptor(0, 1, 0); reject_descriptor(1, 0, 0); reject_descriptor(16, 0, 1);
         end
         pt_transfers_s++;
       end
+      if (TEST_FINALIZATION) begin
+        if ($fscanf(final_fd, "%d\n", final_id) != 1 || final_id != sample) $fatal(1, "Finalization index");
+        for (int r = 0; r < 14; r++) read_state(final_fd, final_expected[r]);
+        if ($fscanf(final_fd, "%h\n", expected_tag) != 1) $fatal(1, "Missing expected tag");
+        finalize(final_expected, expected_tag, paused, early_final_s);
+      end
       recording_s = 0; $fwrite(actual_fd_s, "\n");
       if (sample == 0) begin
         reset_and_check();
         check_resets(key_value, nonce_value, initialized, separated);
+        if (TEST_FINALIZATION)
+          check_final_resets(key_value, nonce_value, initialized, separated, tail, final_expected, expected_tag);
       end
       cases_s++;
     end
     if ($fscanf(fd, "%s", trailing) != -1) $fatal(1, "Extra PT records");
+    if (TEST_FINALIZATION) begin
+      if ($fscanf(final_fd, "%s", trailing) != -1) $fatal(1, "Extra finalization records");
+      $fclose(final_fd);
+    end
     $fclose(fd); $fclose(actual_fd_s);
     reset_and_check();
   endtask
@@ -311,12 +467,20 @@ module ascon_pt_tb;
     repeat (2) @(negedge clock_s);
     reset_and_check();
     check_vectors();
-    $display("[PT] CASES: %0d", cases_s);
-    $display("[PT] AD_TRANSFERS: %0d", ad_transfers_s);
-    $display("[PT] PT_TRANSFERS: %0d", pt_transfers_s);
-    $display("[PT] CIPHER_BLOCKS: %0d", cipher_blocks_s);
-    $display("[PT] ROUND_CHECKS: %0d", rounds_s);
-    $display("[PT] PASS");
+    if (TEST_FINALIZATION) begin
+      $display("[AEAD] CASES: %0d", cases_s);
+      $display("[AEAD] TAGS: %0d", tags_s);
+      $display("[AEAD] AD_PT_ROUND_CHECKS: %0d", rounds_s);
+      $display("[AEAD] FINAL_ROUND_CHECKS: %0d", final_rounds_s);
+      $display("[AEAD] PASS");
+    end else begin
+      $display("[PT] CASES: %0d", cases_s);
+      $display("[PT] AD_TRANSFERS: %0d", ad_transfers_s);
+      $display("[PT] PT_TRANSFERS: %0d", pt_transfers_s);
+      $display("[PT] CIPHER_BLOCKS: %0d", cipher_blocks_s);
+      $display("[PT] ROUND_CHECKS: %0d", rounds_s);
+      $display("[PT] PASS");
+    end
     $finish;
   end
 

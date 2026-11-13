@@ -1,6 +1,6 @@
 // Full-rate block datapath. Commands are accepted only when ready and enabled:
-// 00 loads a state, 01 absorbs 128 bits, 10 starts p[8], 11 holds.
-// p[8] takes eight enabled rounds plus one enabled writeback cycle. While busy,
+// 00 loads a state, 01 absorbs 128 bits, 10 starts p[8]/p[12], 11 holds.
+// The selected permutation takes n enabled rounds plus one writeback. While busy,
 // command inputs are ignored and enable_state_i pauses rounds/writeback.
 module ascon_aead128_datapath
   import ascon_pack::*;
@@ -11,6 +11,7 @@ module ascon_aead128_datapath
   input logic [1:0] select_state_i,
   input type_state initial_state_i,
   input logic [127:0] data_i,
+  input logic use_p12_i,
   output type_state state_o,
   output logic ready_o,
   output logic busy_o,
@@ -40,7 +41,7 @@ module ascon_aead128_datapath
 
   ascon_permutation permutation (
     .clock_i(clock_i), .resetb_i(resetb_i), .start_i(permutation_start_s),
-    .enable_i(enable_state_i), .rounds_i(5'd8), .state_i(state_s),
+    .enable_i(enable_state_i), .rounds_i(use_p12_i ? 5'd12 : 5'd8), .state_i(state_s),
     .ready_o(), .busy_o(), .done_o(permutation_done_s), .error_o(),
     .state_o(permuted_s)
   );
