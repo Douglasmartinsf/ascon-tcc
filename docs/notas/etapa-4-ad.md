@@ -3,13 +3,14 @@
 `ascon_aead128_controller` processa AD após carregar a inicialização
 Ascon-AEAD128. A saída `state_o` ao pulsar `end_associate_o` é o estado de
 320 bits pronto para a fase de plaintext. O topo `ascon` continua v1.2;
-plaintext, ciphertext, finalização e tag padronizados pertencem à etapa 5.
+PT e ciphertext foram acrescentados na [primeira entrega da etapa 5](etapa-5-pt.md);
+finalização e tag padronizados permanecem pendentes.
 
 ## Interface de AD
 
 | Sinal | Contrato |
 |---|---|
-| `associate_data_i` | Deve ser 1 para aceitar AD; PT ainda não é aceito |
+| `associate_data_i` | Deve ser 1 para aceitar AD; após a conclusão, PT usa 0 |
 | `data_bytes_i[4:0]` | Número de bytes válidos, entre 0 e 16 |
 | `data_last_i` | Indica a última transferência de AD |
 | `data_i[127:0]` | Byte j em `[8*j +: 8]`; bytes altos inválidos são ignorados |
@@ -44,16 +45,16 @@ não encerram a fase têm 16 bytes. Múltiplos exatos da taxa marcam last no
 
 O descritor `(0,1)` após um bloco anterior é inválido: um último bloco cheio
 deve ter sido marcado com last. Comprimentos acima de 16, parciais sem last,
-fase diferente de AD e dados antes de init ou depois de encerrar AD também
+fase diferente de AD e dados AD antes de init ou depois de encerrar AD também
 não são aceitos. Nesses casos, `data_ready_o=0`, sem alteração de estado ou
 pulso de conclusão. Ready depende do descritor, mesmo com valid zero; o
 produtor apresenta o descritor antes de aguardar ready. Não há saída de erro.
 
 Init tem prioridade sobre dados e pode reiniciar uma transação em repouso,
 inclusive após o fim de AD. Durante processamento, pedidos de init são
-ignorados. Após encerrar AD, o estado é retido e novas entradas de dados
-permanecem bloqueadas até uma nova inicialização. A etapa 5 estenderá essa
-transição para aceitar PT.
+ignorados. Após encerrar AD, novas entradas AD permanecem bloqueadas.
+PT pode ser aceito na primeira borda seguinte à confirmação, conforme o
+[contrato de PT](etapa-5-pt.md). Sem nova transferência, o estado é retido.
 
 ## Padding e permutação
 

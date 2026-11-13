@@ -23,4 +23,6 @@ A etapa 2 implementa constantes, contador, permutação e inicialização padron
 
 A etapa 3 integra inicialização, absorção de blocos completos de 128 bits e p[8] no módulo `ascon_aead128_controller`, com handshake e testes contra o trace da referência C.
 
-A etapa 4 acrescenta [AD, padding e separação de domínio](docs/notas/etapa-4-ad.md), com comprimentos válidos, último bloco e tratamento de AD vazio, parcial, exato e multibloco. O topo `ascon` ainda executa v1.2; PT, ciphertext, finalização e tag padronizados seguem na etapa 5.
+A etapa 4 acrescenta [AD, padding e separação de domínio](docs/notas/etapa-4-ad.md), com comprimentos válidos, último bloco e tratamento de AD vazio, parcial, exato e multibloco.
+
+A primeira entrega da etapa 5 implementa [PT e ciphertext](docs/notas/etapa-5-pt.md), com padding e sequência de p[8] próprios da fase. O ciphertext é comparado com a referência C e com os 1089 casos do corpus fixado. Finalização e tag permanecem pendentes; o topo `ascon` ainda executa v1.2.

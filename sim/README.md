@@ -12,8 +12,11 @@
 | Datapath da etapa 3 | 515 sequências de três blocos, 1545 absorções e 12360 estados de rodada |
 | Controlador da etapa 3 | 323 inicializações encadeadas a 969 blocos e 7752 estados de rodada |
 | AD da etapa 4 | 469 casos, 1933 transferências, 1959 permutações e 15672 estados de rodada |
+| PT da etapa 5 | 1558 casos AD/PT, 3535 transferências PT, 3497 fragmentos de ciphertext e 41672 estados de rodada AD/PT |
 
-As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh`, `./sim/run_stage3.sh` e `./sim/run_stage4.sh` incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh`, `./sim/run_stage3.sh`, `./sim/run_stage4.sh` e `./sim/run_stage5_pt.sh` incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+
+`./sim/run_pt_vcs.sh` verifica init/AD/PT contra o trace original C, incluindo ciphertext e o estado com padding final de PT. `tools/verify_pt_ciphertext.py` confere os bytes emitidos pelo RTL nas 1558 transações contra C e nos primeiros 1089 casos contra os ciphertexts do KAT, sem tags. Há PT vazio, parcial, exato e multibloco, descritores inválidos, pausas e doze pontos de aborto por reset. Finalização e tag ainda não são exercitadas no RTL.
 
 `./sim/run_ad_vcs.sh` verifica AD vazio, parcial, exato e multibloco, padding e separação de domínio. `tools/ad_reference.c` captura os estados do trace original de `aead.c`; o teste RTL compara cada absorção, rodada e estado ao encerrar AD. Há casos de 0 a 256 bytes, bytes inválidos altos não nulos, pausas, descritores inválidos, captura de entradas e aborto por reset.
 

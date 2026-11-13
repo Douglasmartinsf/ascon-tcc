@@ -15,7 +15,8 @@ module ascon_controller_tb;
     .associate_data_i(1'b1), .data_bytes_i(5'd16), .data_last_i(1'b0),
     .init_ready_o(init_ready_s), .data_ready_o(data_ready_s), .busy_o(busy_s),
     .end_initialisation_o(init_done_s), .block_done_o(block_done_s),
-    .end_associate_o(end_ad_s), .state_o(state_s)
+    .end_associate_o(end_ad_s), .state_o(state_s),
+    .cipher_o(), .cipher_bytes_o(), .cipher_valid_o(), .end_cipher_o()
   );
 
   task automatic tick;

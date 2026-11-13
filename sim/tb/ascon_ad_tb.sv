@@ -16,7 +16,8 @@ module ascon_ad_tb;
     .associate_data_i(associate_s), .data_bytes_i(bytes_s), .data_last_i(last_s),
     .init_ready_o(init_ready_s), .data_ready_o(ready_s), .busy_o(busy_s),
     .end_initialisation_o(init_done_s), .block_done_o(block_done_s),
-    .end_associate_o(end_ad_s), .state_o(state_s)
+    .end_associate_o(end_ad_s), .state_o(state_s),
+    .cipher_o(), .cipher_bytes_o(), .cipher_valid_o(), .end_cipher_o()
   );
 
   task automatic tick;
@@ -245,7 +246,7 @@ module ascon_ad_tb;
             $fatal(1, "AD phase completion");
           // Held valid after completion must not reapply padding/domain bit.
           reject_descriptor(1, 1, 1);
-          reject_descriptor(16, 0, 0);
+          reject_descriptor(17, 1, 0);
           @(negedge clock_s); enable_s = 0;
           repeat (2) begin
             tick();
