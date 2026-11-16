@@ -3,7 +3,8 @@
 O controlador `ascon_aead128_controller` completa a cifração básica com
 chave, nonce e tag de 128 bits. Depois de init, AD e PT, aceita a finalização,
 executa os XORs de chave e p[12] e publica a tag. O marco M2 é verificado nesse
-controlador; o topo legado `ascon` continua v1.2 e sua integração é separada.
+controlador. A [integração posterior](integracao-topo-aead128.md) disponibiliza
+o topo público `ascon_aead128`; o topo legado `ascon` continua v1.2.
 
 ## Interface e aceitação
 

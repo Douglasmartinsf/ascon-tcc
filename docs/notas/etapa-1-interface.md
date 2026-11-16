@@ -1,6 +1,7 @@
 # Etapa 1 — interface Ascon-AEAD128
 
-Contrato futuro das etapas 3–5; o topo atual mantém v1.2.
+Contrato das etapas 3–5. `ascon` mantém v1.2; o topo público padronizado é
+`ascon_aead128`, descrito na [integração](integracao-topo-aead128.md).
 
 A etapa 3 disponibiliza um [controlador interno de blocos completos](etapa-3-controlador.md)
 com interface parcial e reset ativo baixo. A [etapa 4](etapa-4-ad.md) implementa
@@ -8,7 +9,8 @@ o qualificador AD, comprimento, last, padding e separação de domínio nesse
 controlador. A [primeira entrega da etapa 5](etapa-5-pt.md) acrescenta PT e
 ciphertext. O [complemento da etapa 5](etapa-5-finalizacao.md) implementa
 finalização e tag e acrescenta `finalisation_ready_o` à interface interna.
-A integração ao topo com reset externo ativo alto permanece pendente.
+A integração ao topo `ascon_aead128` implementa o reset externo ativo alto e
+expõe esse handshake, além de `init_ready_o`, `busy_o` e `block_done_o`.
 
 ## Representação e sinais
 
@@ -17,16 +19,18 @@ Byte j ocupa `bus[8*j +: 8]`. Bytes `00..0f` representam `128'h0f0e0d0c0b0a09080
 | Sinais | Direção/largura | Função |
 |---|---|---|
 | clock_i, resetb_i | Entrada/1 | Borda de subida; reset externo ativo alto |
-| key_i, nonce_i | Entrada/128 | Estáveis durante a transação |
+| key_i, nonce_i | Entrada/128 | Capturados na aceitação de init |
 | init_i | Entrada/1 | Pulso em repouso |
 | data_i | Entrada/128 | AD/PT bruto, bytes válidos baixos |
 | data_valid_i, data_ready_o | Entrada/1, saída/1 | Handshake |
 | data_bytes_i, data_last_i | Entrada/5, entrada/1 | 0–16 bytes; última transferência |
-| associate_data_i, en_reg_ascon_i | Entrada/1 | Qualificadores de AD/PT |
+| associate_data_i | Entrada/1 | 1 para AD; 0 para PT após conclusão de AD |
+| en_reg_ascon_i | Entrada/1 | Enable global de aceitação e processamento |
 | finalisation_i | Entrada/1 | Pulso após confirmação do último PT |
 | cipher_o, cipher_bytes_o, cipher_valid_o | Saída/128, 5, 1 | Ciphertext e validade |
 | end_initialisation_o, end_associate_o, end_cipher_o | Saída/1 | Conclusão da inicialização e confirmação AD/PT |
 | tag_o, end_tag_o | Saída/128, 1 | Tag válida na conclusão |
+| init_ready_o, finalisation_ready_o, busy_o, block_done_o | Saída/1 cada | Aceitação de comandos, processamento e confirmação de transferência |
 
 Estado inicial: IV, metades baixa/alta da chave, metades baixa/alta do nonce. Absorção usa palavras 0 e 1.
 

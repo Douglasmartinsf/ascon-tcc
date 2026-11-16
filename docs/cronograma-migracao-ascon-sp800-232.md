@@ -34,8 +34,13 @@ regressões anteriores. O complemento de finalização e tag passou em
 aos 1089 KATs completos e à referência C nas 1558 transações. O
 [contrato de finalização](notas/etapa-5-finalizacao.md) e o
 [relatório M2](../results/simulation/etapa-5-finalizacao.md) registram a entrega.
-O topo legado continua v1.2 e sua integração permanece separada. Truncamento,
-nonce masking e novas opções de regressão pertencem à etapa 6.
+A [integração do topo](notas/integracao-topo-aead128.md) acrescenta
+`ascon_aead128` com reset externo ativo alto. `./sim/run_top.sh` passou com
+os mesmos 1089 KATs pelas portas públicas e todas as regressões. Os dois
+topos passaram na elaboração e nas checagens FC sem erros, usando o mesmo
+SDC e diretórios separados; o novo topo registra um aviso de reset em
+`check_timing`. O topo `ascon` continua v1.2 e permanece disponível.
+Truncamento, nonce masking e novas opções de regressão pertencem à etapa 6.
 
 ## Escopo e dependências
 
