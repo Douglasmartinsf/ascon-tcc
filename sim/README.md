@@ -14,8 +14,11 @@
 | AD da etapa 4 | 469 casos, 1933 transferências, 1959 permutações e 15672 estados de rodada |
 | PT da etapa 5 | 1558 casos AD/PT, 3535 transferências PT, 3497 fragmentos de ciphertext e 41672 estados de rodada AD/PT |
 | AEAD da etapa 5 | 1558 tags, 18696 estados de rodada de finalização e 1089 KATs completos de ciphertext/tag |
+| Topo público | 1558 transações, 3497 fragmentos, 1558 tags, 1089 KATs completos e 16 pontos de aborto por reset externo |
 
 As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh`, `./sim/run_stage3.sh`, `./sim/run_stage4.sh`, `./sim/run_stage5_pt.sh` e `./sim/run_stage5.sh` incluem regressões da baseline e do core ativo. O topo legado ainda executa v1.2; a cifração AEAD128 é verificada diretamente no controlador padronizado.
+
+`./sim/run_top_vcs.sh` verifica a interface pública de `ascon_aead128`, sem observar hierarquia ou estados internos. O modo opcional do gerador C exporta `top.txt` somente com entradas, ciphertext e tag. O testbench confere handshakes, latências, reset externo ativo alto, pausas, captura das entradas e bytes emitidos, que são comparados com C e os KATs por `verify_aead.py`. `./sim/run_top.sh` agrega o teste à suíte completa da etapa 5.
 
 `./sim/run_aead128_vcs.sh` usa o modo opcional de finalização do gerador C e o testbench compartilhado de PT com `TEST_FINALIZATION=1`. Compara os dois XORs finais, as doze rodadas e a tag em 1558 transações. `verify_aead.py` confere ciphertext mais tag realmente emitidos pelo RTL contra C e o CT completo dos 1089 KATs. O teste inclui pausas, pedidos inválidos/repetidos e dez pontos de reset adicionais na finalização. `./sim/run_stage5.sh` verifica M2 no controlador e preserva o teste do subconjunto PT.
 

@@ -5,6 +5,7 @@ Desenvolvimento de hardware Ascon-128 v1.2 e migração para Ascon-AEAD128. O co
 ## Estrutura
 
 - `src/`: RTL sintetizável, topo `ascon`.
+- `src/ascon_aead128.sv`: topo público de cifração Ascon-AEAD128, separado do legado.
 - `sim/`: testbenches e vetores.
 - `syn/`: fluxo Fusion Compiler e restrições.
 - `baselines/ascon-core-v1/`: referência Ascon-128 v1.2.
@@ -27,4 +28,6 @@ A etapa 4 acrescenta [AD, padding e separação de domínio](docs/notas/etapa-4-
 
 A primeira entrega da etapa 5 implementa [PT e ciphertext](docs/notas/etapa-5-pt.md), com padding e sequência de p[8] próprios da fase.
 
-O complemento da etapa 5 implementa [finalização e tag](docs/notas/etapa-5-finalizacao.md). A suíte compara ciphertext e tag com os 1089 KATs fixados e com a referência C em 1558 transações, verificando M2 no controlador padronizado. O topo `ascon` ainda executa v1.2; sua integração permanece separada.
+O complemento da etapa 5 implementa [finalização e tag](docs/notas/etapa-5-finalizacao.md). A suíte compara ciphertext e tag com os 1089 KATs fixados e com a referência C em 1558 transações, verificando M2 no controlador padronizado.
+
+A [integração do topo](docs/notas/integracao-topo-aead128.md) expõe `ascon_aead128` com reset externo ativo alto e valida os mesmos KATs pelas portas públicas. `./sim/run_top.sh` executa o teste e todas as regressões; `TOP_MODULE=ascon_aead128 ./syn/run_fc.sh` seleciona o novo topo. `ascon` mantém v1.2 e permanece o padrão da síntese. As execuções de síntese ficam isoladas por topo e identificador.

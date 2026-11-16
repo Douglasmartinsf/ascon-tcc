@@ -71,16 +71,19 @@ static void emit_bus(FILE *f, const uint8_t *bytes, int offset, int count) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 3 && argc != 5) return 2;
+  if (argc != 3 && argc != 5 && argc != 6) return 2;
   FILE *f = fopen(argv[1], "w"), *cipher = fopen(argv[2], "w");
-  FILE *final = argc == 5 ? fopen(argv[3], "w") : NULL;
-  FILE *aead = argc == 5 ? fopen(argv[4], "w") : NULL;
+  FILE *final = argc >= 5 ? fopen(argv[3], "w") : NULL;
+  FILE *aead = argc >= 5 ? fopen(argv[4], "w") : NULL;
+  FILE *top = argc == 6 ? fopen(argv[5], "w") : NULL;
   if (!f || !cipher) return 2;
-  if (argc == 5 && (!final || !aead)) return 2;
+  if (argc >= 5 && (!final || !aead)) return 2;
+  if (argc == 6 && !top) return 2;
   const int boundaries[] = {0, 1, 7, 8, 9, 15, 16, 17, 31, 32, 33, 48, 49, 64, 80};
   int total_ad = 0, total_pt = 0, total_rounds = 0, total_cipher = 0;
   fprintf(f, "1558\n");
   if (final) fprintf(final, "1558\n");
+  if (top) fprintf(top, "1558\n");
   for (int sample = 0; sample < 1558; ++sample) {
     int plen, alen, pattern;
     if (sample < 1089) {
@@ -166,6 +169,31 @@ int main(int argc, char **argv) {
       for (int b = 0; b < plen + 16; ++b) fprintf(aead, "%02x", output[b]);
       fputc('\n', aead);
     }
+    if (top) {
+      /* Public-port corpus: no internal states or round traces. */
+      fprintf(top, "%d %d %d %d %d\n", sample, alen, plen, ad_transfers, pt_transfers);
+      fprintf(top, "%016" PRIx64 "%016" PRIx64 " %016" PRIx64 "%016" PRIx64 "\n",
+              LOADBYTES(input + 8, 8), LOADBYTES(input, 8),
+              LOADBYTES(input + 24, 8), LOADBYTES(input + 16, 8));
+      for (int transfer = 0; transfer < ad_transfers; ++transfer) {
+        int bytes = alen - 16 * transfer;
+        if (bytes > 16) bytes = 16;
+        fprintf(top, "%d %d ", bytes, transfer == ad_transfers - 1);
+        emit_bus(top, ad, 16 * transfer, bytes);
+      }
+      for (int transfer = 0; transfer < pt_transfers; ++transfer) {
+        int bytes = plen - 16 * transfer;
+        if (bytes > 16) bytes = 16;
+        fprintf(top, "%d %d ", bytes, transfer == pt_transfers - 1);
+        emit_bus(top, pt, 16 * transfer, bytes);
+        uint8_t bus[16] = {0};
+        if (bytes) memcpy(bus, output + 16 * transfer, bytes);
+        fprintf(top, "%016" PRIx64 "%016" PRIx64 "\n",
+                LOADBYTES(bus + 8, 8), LOADBYTES(bus, 8));
+      }
+      fprintf(top, "%016" PRIx64 "%016" PRIx64 "\n",
+              LOADBYTES(output + plen + 8, 8), LOADBYTES(output + plen, 8));
+    }
     total_ad += ad_transfers;
     total_pt += pt_transfers;
     total_rounds += 8 * (ad_count + pt_count);
@@ -176,6 +204,10 @@ int main(int argc, char **argv) {
     io_failed = ferror(final) || ferror(aead);
     if (fclose(final) != 0 || fclose(aead) != 0 || io_failed) return 5;
     puts("[AEAD_REFERENCE] PASS: 1558 finalizations, 18696 finalization rounds");
+  }
+  if (top) {
+    io_failed = ferror(top);
+    if (fclose(top) != 0 || io_failed) return 5;
   }
   printf("[PT_REFERENCE] CASES: 1558\n[PT_REFERENCE] AD_TRANSFERS: %d\n"
          "[PT_REFERENCE] PT_TRANSFERS: %d\n[PT_REFERENCE] CIPHER_BLOCKS: %d\n"

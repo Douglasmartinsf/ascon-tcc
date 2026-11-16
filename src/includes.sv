@@ -4,6 +4,7 @@
 `include "ascon_aead128_init.sv"
 `include "ascon_aead128_datapath.sv"
 `include "ascon_aead128_controller.sv"
+`include "ascon_aead128.sv"
 
 `include "ascon.sv"
 
