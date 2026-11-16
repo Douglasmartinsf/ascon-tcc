@@ -4,7 +4,7 @@
 Ascon-AEAD128. A saída `state_o` ao pulsar `end_associate_o` é o estado de
 320 bits pronto para a fase de plaintext. O topo `ascon` continua v1.2;
 PT e ciphertext foram acrescentados na [primeira entrega da etapa 5](etapa-5-pt.md);
-finalização e tag padronizados permanecem pendentes.
+o [complemento da etapa 5](etapa-5-finalizacao.md) implementa finalização e tag.
 
 ## Interface de AD
 

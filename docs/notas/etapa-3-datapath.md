@@ -1,5 +1,11 @@
 # Etapa 3 — absorção de 128 bits e integração com p[8]
 
+A finalização da etapa 5 acrescenta `use_p12_i`: zero mantém p[8], conforme
+o contrato abaixo; um seleciona p[12], com doze rodadas e uma escrita final.
+O seletor é considerado somente na aceitação do comando de permutação.
+Os testes da etapa 3 o fixam em zero. Consulte o
+[contrato de finalização](etapa-5-finalizacao.md) para a sequência integrada.
+
 `ascon_aead128_datapath` mantém um estado de 320 bits. O módulo anterior
 recebia resultados externos de XOR e rodada; essas entradas foram substituídas
 por `data_i[127:0]` e pela instância interna de `ascon_permutation` com oito

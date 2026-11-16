@@ -25,4 +25,6 @@ A etapa 3 integra inicialização, absorção de blocos completos de 128 bits e 
 
 A etapa 4 acrescenta [AD, padding e separação de domínio](docs/notas/etapa-4-ad.md), com comprimentos válidos, último bloco e tratamento de AD vazio, parcial, exato e multibloco.
 
-A primeira entrega da etapa 5 implementa [PT e ciphertext](docs/notas/etapa-5-pt.md), com padding e sequência de p[8] próprios da fase. O ciphertext é comparado com a referência C e com os 1089 casos do corpus fixado. Finalização e tag permanecem pendentes; o topo `ascon` ainda executa v1.2.
+A primeira entrega da etapa 5 implementa [PT e ciphertext](docs/notas/etapa-5-pt.md), com padding e sequência de p[8] próprios da fase.
+
+O complemento da etapa 5 implementa [finalização e tag](docs/notas/etapa-5-finalizacao.md). A suíte compara ciphertext e tag com os 1089 KATs fixados e com a referência C em 1558 transações, verificando M2 no controlador padronizado. O topo `ascon` ainda executa v1.2; sua integração permanece separada.

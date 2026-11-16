@@ -2,7 +2,8 @@
 
 Esta entrega acrescenta PT ao `ascon_aead128_controller`, após a conclusão
 de [AD](etapa-4-ad.md). Produz ciphertext e mantém o estado final de PT para
-a futura finalização. Não implementa finalização nem tag e não conclui M2.
+a finalização. O [complemento da etapa 5](etapa-5-finalizacao.md) acrescenta
+finalização, tag e a verificação de M2; este documento descreve o subconjunto PT.
 O topo `ascon` continua executando v1.2.
 
 ## Interface e fases
@@ -40,7 +41,8 @@ Ready depende do descritor mesmo com valid zero; o produtor apresenta os
 campos antes de aguardar ready. Init tem prioridade em repouso e pode
 reiniciar entre transferências, inclusive depois de PT; pedidos durante
 processamento são ignorados. Após `end_cipher_o`, dados de ambas as fases
-permanecem bloqueados até novo init. A finalização será acrescentada depois.
+permanecem bloqueados. O controlador pode aceitar finalização, conforme o
+[contrato específico](etapa-5-finalizacao.md), ou um novo init em repouso.
 
 ## Ciphertext, padding e p[8]
 
@@ -110,4 +112,6 @@ Há testes de descritores inválidos, fases erradas, captura das entradas,
 transferências consecutivas, pausas e doze pontos de aborto por reset.
 `./sim/run_stage5_pt.sh` agrega PT e toda a suíte da etapa 4. O
 [relatório](../../results/simulation/etapa-5-pt.md) registra os resultados e
-o manifesto das fontes. Não se declara AEAD128 RTL completo.
+o manifesto das fontes. A verificação completa de ciphertext e tag no
+controlador é executada por `./sim/run_stage5.sh`, descrita no
+[complemento de finalização](etapa-5-finalizacao.md).

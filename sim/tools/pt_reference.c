@@ -1,5 +1,5 @@
-/* Capture complete AD and PT traces from the pinned, unmodified aead.c.
- * Finalization runs only in C; its states and tag are not sent to the RTL. */
+/* Capture pinned, unmodified aead.c traces. The optional full-AEAD outputs
+ * include finalization states and ciphertext/tag, preserving the PT corpus. */
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +10,8 @@
 static ascon_state_t initialized, ad_ops[17][9], pt_ops[16][9], separated, tail;
 static int init_count, ad_count, pt_count, domain_count, tail_count;
 static int collecting, round_count, failed;
+static ascon_state_t final_states[14];
+static int final_first_count, final_last_count;
 static uint64_t random_state = UINT64_C(0x243f6a8885a308d3);
 
 void print(const char *text) { (void)text; }
@@ -32,10 +34,21 @@ void printstate(const char *text, const ascon_state_t *s) {
   } else if (collecting && !strcmp(text, " round output")) {
     ++round_count;
     if (collecting == 1) ad_ops[ad_count - 1][round_count] = *s;
-    else pt_ops[pt_count - 1][round_count] = *s;
-    if (round_count == 8) collecting = 0;
+    else if (collecting == 2) pt_ops[pt_count - 1][round_count] = *s;
+    else final_states[round_count] = *s;
+    if (round_count == (collecting == 3 ? 12 : 8)) collecting = 0;
   } else if (!strcmp(text, "domain separation")) { separated = *s; ++domain_count; }
   else if (!strcmp(text, "pad plaintext")) { tail = *s; ++tail_count; }
+  else if (!strcmp(text, "final 1st key xor")) {
+    if (collecting) { failed = 1; return; }
+    final_states[0] = *s;
+    ++final_first_count;
+    round_count = 0;
+    collecting = 3;
+  } else if (!strcmp(text, "final 2nd key xor")) {
+    final_states[13] = *s;
+    ++final_last_count;
+  }
 }
 
 static uint64_t next_random(void) {
@@ -58,12 +71,16 @@ static void emit_bus(FILE *f, const uint8_t *bytes, int offset, int count) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 3) return 2;
+  if (argc != 3 && argc != 5) return 2;
   FILE *f = fopen(argv[1], "w"), *cipher = fopen(argv[2], "w");
+  FILE *final = argc == 5 ? fopen(argv[3], "w") : NULL;
+  FILE *aead = argc == 5 ? fopen(argv[4], "w") : NULL;
   if (!f || !cipher) return 2;
+  if (argc == 5 && (!final || !aead)) return 2;
   const int boundaries[] = {0, 1, 7, 8, 9, 15, 16, 17, 31, 32, 33, 48, 49, 64, 80};
   int total_ad = 0, total_pt = 0, total_rounds = 0, total_cipher = 0;
   fprintf(f, "1558\n");
+  if (final) fprintf(final, "1558\n");
   for (int sample = 0; sample < 1558; ++sample) {
     int plen, alen, pattern;
     if (sample < 1089) {
@@ -92,11 +109,13 @@ int main(int argc, char **argv) {
               (uint8_t)next_random();
     init_count = ad_count = pt_count = domain_count = tail_count = 0;
     collecting = round_count = failed = 0;
+    final_first_count = final_last_count = 0;
     unsigned long long length = 0;
     if (crypto_aead_encrypt(output, &length, pt, plen, ad, alen, NULL,
                             input + 16, input) != 0 || length != (unsigned)(plen + 16) ||
         init_count != 1 || domain_count != 1 || tail_count != 1 || collecting || failed ||
-        ad_count != (alen ? alen / 16 + 1 : 0) || pt_count != plen / 16) return 3;
+        ad_count != (alen ? alen / 16 + 1 : 0) || pt_count != plen / 16 ||
+        final_first_count != 1 || final_last_count != 1 || round_count != 12) return 3;
     int ad_transfers = alen ? (alen + 15) / 16 : 1;
     int pt_transfers = plen ? (plen + 15) / 16 : 1;
     fprintf(f, "%d %d %d %d %d\n", sample, alen, plen, ad_transfers, pt_transfers);
@@ -138,12 +157,26 @@ int main(int argc, char **argv) {
     fprintf(cipher, "%d %d ", sample, plen);
     for (int b = 0; b < plen; ++b) fprintf(cipher, "%02x", output[b]);
     fputc('\n', cipher);
+    if (final) {
+      fprintf(final, "%d\n", sample);
+      for (int r = 0; r < 14; ++r) emit_state(final, &final_states[r]);
+      fprintf(final, "%016" PRIx64 "%016" PRIx64 "\n",
+              LOADBYTES(output + plen + 8, 8), LOADBYTES(output + plen, 8));
+      fprintf(aead, "%d %d ", sample, plen + 16);
+      for (int b = 0; b < plen + 16; ++b) fprintf(aead, "%02x", output[b]);
+      fputc('\n', aead);
+    }
     total_ad += ad_transfers;
     total_pt += pt_transfers;
     total_rounds += 8 * (ad_count + pt_count);
   }
   int io_failed = ferror(f) || ferror(cipher);
   if (fclose(f) != 0 || fclose(cipher) != 0 || io_failed) return 5;
+  if (final) {
+    io_failed = ferror(final) || ferror(aead);
+    if (fclose(final) != 0 || fclose(aead) != 0 || io_failed) return 5;
+    puts("[AEAD_REFERENCE] PASS: 1558 finalizations, 18696 finalization rounds");
+  }
   printf("[PT_REFERENCE] CASES: 1558\n[PT_REFERENCE] AD_TRANSFERS: %d\n"
          "[PT_REFERENCE] PT_TRANSFERS: %d\n[PT_REFERENCE] CIPHER_BLOCKS: %d\n"
          "[PT_REFERENCE] ROUND_CHECKS: %d\n[PT_REFERENCE] PASS\n",

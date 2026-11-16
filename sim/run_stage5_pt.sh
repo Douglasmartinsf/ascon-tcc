@@ -9,4 +9,4 @@ run_check regression bash sim/run_stage4.sh
 if (( failed_checks != 0 )); then
   exit 1
 fi
-echo '[STAGE5_PT] PASS: plaintext/ciphertext and all stage 4 checks passed; finalization/tag pending'
+echo '[STAGE5_PT] PASS: plaintext/ciphertext subset and all stage 4 checks passed'

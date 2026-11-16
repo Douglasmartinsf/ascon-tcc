@@ -13,10 +13,13 @@
 | Controlador da etapa 3 | 323 inicializações encadeadas a 969 blocos e 7752 estados de rodada |
 | AD da etapa 4 | 469 casos, 1933 transferências, 1959 permutações e 15672 estados de rodada |
 | PT da etapa 5 | 1558 casos AD/PT, 3535 transferências PT, 3497 fragmentos de ciphertext e 41672 estados de rodada AD/PT |
+| AEAD da etapa 5 | 1558 tags, 18696 estados de rodada de finalização e 1089 KATs completos de ciphertext/tag |
 
-As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh`, `./sim/run_stage3.sh`, `./sim/run_stage4.sh` e `./sim/run_stage5_pt.sh` incluem regressões da baseline e do core ativo. O topo legado ainda não implementa AEAD128 completo.
+As suítes `./sim/run_stage1.sh`, `./sim/run_stage2.sh`, `./sim/run_stage3.sh`, `./sim/run_stage4.sh`, `./sim/run_stage5_pt.sh` e `./sim/run_stage5.sh` incluem regressões da baseline e do core ativo. O topo legado ainda executa v1.2; a cifração AEAD128 é verificada diretamente no controlador padronizado.
 
-`./sim/run_pt_vcs.sh` verifica init/AD/PT contra o trace original C, incluindo ciphertext e o estado com padding final de PT. `tools/verify_pt_ciphertext.py` confere os bytes emitidos pelo RTL nas 1558 transações contra C e nos primeiros 1089 casos contra os ciphertexts do KAT, sem tags. Há PT vazio, parcial, exato e multibloco, descritores inválidos, pausas e doze pontos de aborto por reset. Finalização e tag ainda não são exercitadas no RTL.
+`./sim/run_aead128_vcs.sh` usa o modo opcional de finalização do gerador C e o testbench compartilhado de PT com `TEST_FINALIZATION=1`. Compara os dois XORs finais, as doze rodadas e a tag em 1558 transações. `verify_aead.py` confere ciphertext mais tag realmente emitidos pelo RTL contra C e o CT completo dos 1089 KATs. O teste inclui pausas, pedidos inválidos/repetidos e dez pontos de reset adicionais na finalização. `./sim/run_stage5.sh` verifica M2 no controlador e preserva o teste do subconjunto PT.
+
+`./sim/run_pt_vcs.sh` verifica init/AD/PT contra o trace original C, incluindo ciphertext e o estado com padding final de PT. `tools/verify_pt_ciphertext.py` confere os bytes emitidos pelo RTL nas 1558 transações contra C e nos primeiros 1089 casos contra os ciphertexts do KAT, sem tags. Há PT vazio, parcial, exato e multibloco, descritores inválidos, pausas e doze pontos de aborto por reset. Essa suíte preserva a verificação do subconjunto PT sem solicitar finalização.
 
 `./sim/run_ad_vcs.sh` verifica AD vazio, parcial, exato e multibloco, padding e separação de domínio. `tools/ad_reference.c` captura os estados do trace original de `aead.c`; o teste RTL compara cada absorção, rodada e estado ao encerrar AD. Há casos de 0 a 256 bytes, bytes inválidos altos não nulos, pausas, descritores inválidos, captura de entradas e aborto por reset.
 

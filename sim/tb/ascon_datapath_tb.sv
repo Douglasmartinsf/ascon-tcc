@@ -11,7 +11,7 @@ module ascon_datapath_tb;
   always #5 clock_s = ~clock_s;
   ascon_aead128_datapath dut (
     .clock_i(clock_s), .resetb_i(resetb_s), .enable_state_i(enable_s),
-    .select_state_i(select_s), .initial_state_i(initial_s), .data_i(data_s),
+    .select_state_i(select_s), .initial_state_i(initial_s), .data_i(data_s), .use_p12_i(1'b0),
     .state_o(state_s), .ready_o(ready_s), .busy_o(busy_s), .done_o(done_s)
   );
 
