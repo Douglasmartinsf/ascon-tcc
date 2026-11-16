@@ -28,3 +28,5 @@ Após AD, o mesmo controlador aceita PT com `associate_data_i=0` e emite ciphert
 Após PT, `finalisation_i` com `finalisation_ready_o` inicia os XORs da chave capturada e p[12] no mesmo datapath. `tag_o` publica a tag LE de 128 bits e `end_tag_o` pulsa uma vez. `./sim/run_aead128_vcs.sh` compara ciphertext e tag com C e os KATs. O [contrato de finalização](../docs/notas/etapa-5-finalizacao.md) define aceitação, pausa e reset.
 
 `ascon_aead128` adapta reset ativo alto e `en_reg_ascon_i` ao controlador, preservando latências e handshakes. Não expõe o estado interno. `./sim/run_top_vcs.sh` verifica apenas suas portas públicas. O [contrato externo](../docs/notas/integracao-topo-aead128.md) documenta uso e seleção na síntese.
+
+O topo também captura `tag_truncate_i`/`tag_bytes_i` no init. O padrão é 128 bits; habilitado, publica prefixos de 4–16 bytes com comprimento em `tag_bytes_o`, zerando os bytes altos. Configurações inválidas não aceitam init nem comandos simultâneos. O controlador e o datapath continuam calculando a tag completa sem alterações. O [contrato de truncamento](../docs/notas/etapa-6-truncamento.md) define captura, política por chave e limites.

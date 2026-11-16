@@ -11,6 +11,8 @@ ciphertext. O [complemento da etapa 5](etapa-5-finalizacao.md) implementa
 finalização e tag e acrescenta `finalisation_ready_o` à interface interna.
 A integração ao topo `ascon_aead128` implementa o reset externo ativo alto e
 expõe esse handshake, além de `init_ready_o`, `busy_o` e `block_done_o`.
+O [truncamento da etapa 6](etapa-6-truncamento.md) acrescenta configuração de
+tag no init; o modo padrão continua em 128 bits.
 
 ## Representação e sinais
 
@@ -31,6 +33,8 @@ Byte j ocupa `bus[8*j +: 8]`. Bytes `00..0f` representam `128'h0f0e0d0c0b0a09080
 | end_initialisation_o, end_associate_o, end_cipher_o | Saída/1 | Conclusão da inicialização e confirmação AD/PT |
 | tag_o, end_tag_o | Saída/128, 1 | Tag válida na conclusão |
 | init_ready_o, finalisation_ready_o, busy_o, block_done_o | Saída/1 cada | Aceitação de comandos, processamento e confirmação de transferência |
+| tag_truncate_i, tag_bytes_i | Entrada/1, entrada/5 | Habilita prefixo de 4–16 bytes; desabilitado usa 16 bytes |
+| tag_bytes_o | Saída/5 | Comprimento capturado, válido com end_tag_o |
 
 Estado inicial: IV, metades baixa/alta da chave, metades baixa/alta do nonce. Absorção usa palavras 0 e 1.
 
@@ -44,4 +48,4 @@ Ciphertext é sinalizado no ciclo de validade, inclusive antes da confirmação.
 
 Fase vazia: `(0,1)` somente. Parciais exigem last; múltiplos de 16 marcam o último bloco cheio. Exemplos: 17 bytes → `(16,0),(1,1)`; 32 → `(16,0),(16,1)`. Bytes altos são zerados/ignorados; padding é interno. PT vazio não gera ciphertext, mas produz tag.
 
-Init ocupado, AD/PT simultâneos, fase errada, bytes>16 e finalização prematura são inválidos. Esses usos são classificados como violações de protocolo. Tag básica fixa; opções posteriores não reutilizam bits de comprimento. Reset dos módulos internos é ativo baixo.
+Init ocupado, AD/PT simultâneos, fase errada, bytes>16 e finalização prematura são inválidos. Esses usos são classificados como violações de protocolo. Tag padrão fixa em 128 bits; sua configuração opcional tem sinais próprios e não reutiliza bits do comprimento de dados. Reset dos módulos internos é ativo baixo.

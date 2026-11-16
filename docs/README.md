@@ -10,6 +10,7 @@
 - [PT da etapa 5](notas/etapa-5-pt.md): ciphertext, padding final e verificação de AD/PT.
 - [Finalização da etapa 5](notas/etapa-5-finalizacao.md): p[12], tag, protocolo de conclusão e verificação de M2.
 - [Topo público Ascon-AEAD128](notas/integracao-topo-aead128.md): interface externa, KATs por portas públicas e seleção na síntese.
+- [Truncamento da etapa 6](notas/etapa-6-truncamento.md): comprimento capturado no init, prefixos de tag e regressões.
 - [Organização](notas/organizacao-projeto.md): caminhos e executores.
 - [Ferramentas](tools/README.md): geração dos documentos em [output](../output/README.md).
 

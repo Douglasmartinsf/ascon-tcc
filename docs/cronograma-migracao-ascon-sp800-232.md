@@ -40,7 +40,14 @@ os mesmos 1089 KATs pelas portas públicas e todas as regressões. Os dois
 topos passaram na elaboração e nas checagens FC sem erros, usando o mesmo
 SDC e diretórios separados; o novo topo registra um aviso de reset em
 `check_timing`. O topo `ascon` continua v1.2 e permanece disponível.
-Truncamento, nonce masking e novas opções de regressão pertencem à etapa 6.
+A primeira entrega da etapa 6 acrescenta o
+[truncamento configurável](notas/etapa-6-truncamento.md): prefixos de 4 a 16
+bytes, capturados no init, mantendo 128 bits como padrão. A suíte
+`./sim/run_stage6_truncation.sh` passou com 20254 transações, 14157 prefixos
+derivados dos KATs e todas as regressões anteriores. O
+[relatório](../results/simulation/etapa-6-truncamento.md) registra os testes
+e a elaboração FC das novas portas. Nonce masking permanece pendente;
+portanto M3 ainda não foi concluído.
 
 ## Escopo e dependências
 
