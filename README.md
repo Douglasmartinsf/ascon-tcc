@@ -31,3 +31,5 @@ A primeira entrega da etapa 5 implementa [PT e ciphertext](docs/notas/etapa-5-pt
 O complemento da etapa 5 implementa [finalização e tag](docs/notas/etapa-5-finalizacao.md). A suíte compara ciphertext e tag com os 1089 KATs fixados e com a referência C em 1558 transações, verificando M2 no controlador padronizado.
 
 A [integração do topo](docs/notas/integracao-topo-aead128.md) expõe `ascon_aead128` com reset externo ativo alto e valida os mesmos KATs pelas portas públicas. `./sim/run_top.sh` executa o teste e todas as regressões; `TOP_MODULE=ascon_aead128 ./syn/run_fc.sh` seleciona o novo topo. `ascon` mantém v1.2 e permanece o padrão da síntese. As execuções de síntese ficam isoladas por topo e identificador.
+
+A primeira entrega da etapa 6 acrescenta [truncamento de tag](docs/notas/etapa-6-truncamento.md), configurado no init, com prefixos de 4 a 16 bytes e 128 bits como padrão. `./sim/run_stage6_truncation.sh` verifica os comprimentos e preserva todas as regressões. A aplicação mantém o tamanho por chave; nonce masking permanece pendente.

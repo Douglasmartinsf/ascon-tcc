@@ -26,6 +26,13 @@ a interface e o algoritmo v1.2.
 | `end_associate_o`, `end_cipher_o` | Pulsos de conclusão das fases AD/PT |
 | `cipher_o[127:0]`, `cipher_bytes_o[4:0]`, `cipher_valid_o` | Fragmento LE, comprimento e pulso de validade |
 | `tag_o[127:0]`, `end_tag_o` | Tag LE completa e pulso de publicação |
+| `tag_truncate_i`, `tag_bytes_i[4:0]`, `tag_bytes_o[4:0]` | Opção da etapa 6: prefixo configurado no init e comprimento válido |
+
+O [truncamento da etapa 6](etapa-6-truncamento.md) mantém a tag de 128 bits
+quando `tag_truncate_i=0`. Com o seletor habilitado, aceita de 4 a 16 bytes,
+captura o tamanho no init e zera os bytes descartados. A tabela acima descreve
+a tag completa do modo padrão; no modo habilitado, `tag_bytes_o` informa o
+prefixo publicado. Configuração inválida bloqueia o init.
 
 O topo inverte reset uma única vez para alimentar o controlador interno,
 cujo reset é ativo baixo. `en_reg_ascon_i` não identifica a fase PT: a fase
@@ -102,5 +109,6 @@ esse aviso foi mantido no relatório, preservando o SDC canônico.
 
 Os resumos funcionais estão no [relatório de simulação](../../results/simulation/integracao-topo-aead128.md)
 e as checagens no [relatório de elaboração](../../results/synthesis/integracao-topos.md).
-Não há novas métricas PPA, truncamento, nonce masking ou decriptação nesta
-entrega. Baseline e upstream permanecem preservados.
+Não houve novas métricas PPA nesta integração. O truncamento foi acrescentado
+na etapa 6; nonce masking e decriptação permanecem fora desta interface.
+Baseline e upstream permanecem preservados.

@@ -1,10 +1,15 @@
 `timescale 1ns/1ps
 // Black-box verification: only public ports of ascon_aead128 are observed.
-module ascon_top_tb;
+module ascon_top_tb #(parameter bit TEST_TRUNCATION = 1'b0);
   logic clock_s = 0, reset_s = 1, enable_s = 1, init_s = 0, associate_s = 1;
   logic valid_s = 0, last_s = 0, final_s = 0;
   logic [127:0] key_s = 0, nonce_s = 0, data_s = 0, cipher_s, tag_s;
   logic [4:0] bytes_s = 16, cipher_bytes_s;
+  logic truncate_s = 0;
+  logic [4:0] tag_bytes_request_s = 16, tag_bytes_s;
+  bit selected_truncate_s = 0, config_captured_s = 0;
+  int selected_tag_bytes_s = 16, captured_tag_bytes_s = 16;
+  int invalid_requests_s = 0, disabled_inits_s = 0;
   logic init_ready_s, ready_s, final_ready_s, busy_s;
   logic init_done_s, block_done_s, ad_done_s, pt_done_s, tag_done_s, cipher_valid_s;
   bit expect_init_s = 0, expect_block_s = 0, expect_ad_s = 0, expect_pt_s = 0;
@@ -19,6 +24,7 @@ module ascon_top_tb;
     .clock_i(clock_s), .resetb_i(reset_s), .init_i(init_s), .en_reg_ascon_i(enable_s),
     .associate_data_i(associate_s), .finalisation_i(final_s), .key_i(key_s), .nonce_i(nonce_s),
     .data_i(data_s), .data_valid_i(valid_s), .data_bytes_i(bytes_s), .data_last_i(last_s),
+    .tag_truncate_i(truncate_s), .tag_bytes_i(tag_bytes_request_s), .tag_bytes_o(tag_bytes_s),
     .init_ready_o(init_ready_s), .data_ready_o(ready_s), .finalisation_ready_o(final_ready_s),
     .busy_o(busy_s), .end_initialisation_o(init_done_s), .block_done_o(block_done_s),
     .end_associate_o(ad_done_s), .end_cipher_o(pt_done_s), .cipher_o(cipher_s),
@@ -27,6 +33,8 @@ module ascon_top_tb;
 
   always @(posedge clock_s) begin
     #1;
+    if (config_captured_s && tag_bytes_s !== 5'(captured_tag_bytes_s))
+      $fatal(1, "Tag length changed without an accepted init");
     if (init_done_s) begin
       if (!expect_init_s) $fatal(1, "Unexpected/repeated public init completion");
       expect_init_s = 0; seen_init_s = 1;
@@ -56,7 +64,7 @@ module ascon_top_tb;
       if (!expect_tag_s || tag_s !== expected_tag_s) $fatal(1, "Public tag mismatch case=%0d", cases_s);
       expect_tag_s = 0; seen_tag_s = 1;
       if (recording_s) begin
-        for (int b = 0; b < 16; b++) $fwrite(actual_fd_s, "%02h", tag_s[8*b +: 8]);
+        for (int b = 0; b < captured_tag_bytes_s; b++) $fwrite(actual_fd_s, "%02h", tag_s[8*b +: 8]);
         tags_s++;
       end
     end
@@ -74,21 +82,23 @@ module ascon_top_tb;
   task automatic reset_and_check;
     @(negedge clock_s); #2;
     reset_s = 1;
+    config_captured_s = 0;
     expect_init_s = 0; expect_block_s = 0; expect_ad_s = 0; expect_pt_s = 0;
     expect_cipher_s = 0; expect_tag_s = 0;
     #1;
     if (init_ready_s !== 0 || ready_s !== 0 || final_ready_s !== 0 || busy_s !== 0 ||
         init_done_s !== 0 || block_done_s !== 0 || ad_done_s !== 0 || pt_done_s !== 0 ||
-        cipher_valid_s !== 0 || tag_done_s !== 0 || tag_s !== 0 || cipher_s !== 0 || cipher_bytes_s !== 0)
+        cipher_valid_s !== 0 || tag_done_s !== 0 || tag_s !== 0 || cipher_s !== 0 || cipher_bytes_s !== 0 || tag_bytes_s !== 0)
       $fatal(1, "Public active-high asynchronous reset failed");
     @(negedge clock_s);
     reset_s = 0; enable_s = 1; init_s = 0; valid_s = 1; associate_s = 0; final_s = 1;
     bytes_s = 16; last_s = 0;
+    truncate_s = 0; tag_bytes_request_s = 16;
     repeat (20) begin
       tick();
       if (init_ready_s !== 1 || ready_s !== 0 || final_ready_s !== 0 || busy_s !== 0 ||
           cipher_s !== 0 || tag_s !== 0 || init_done_s !== 0 || block_done_s !== 0 ||
-          ad_done_s !== 0 || pt_done_s !== 0 || tag_done_s !== 0 || cipher_valid_s !== 0)
+          ad_done_s !== 0 || pt_done_s !== 0 || tag_done_s !== 0 || cipher_valid_s !== 0 || tag_bytes_s !== 0)
         $fatal(1, "Stale result or acceptance before public init");
     end
     @(negedge clock_s); valid_s = 0; final_s = 0;
@@ -98,9 +108,12 @@ module ascon_top_tb;
     @(negedge clock_s);
     enable_s = 1; init_s = 1; valid_s = 1; final_s = 1;
     key_s = key_value; nonce_s = nonce_value; associate_s = 1; bytes_s = 16; last_s = 0;
+    truncate_s = selected_truncate_s; tag_bytes_request_s = 5'(selected_tag_bytes_s);
     #1;
     if (init_ready_s !== 1 || ready_s !== 0 || final_ready_s !== 0) $fatal(1, "Public init priority");
     expect_init_s = 1; seen_init_s = 0;
+    captured_tag_bytes_s = selected_truncate_s ? selected_tag_bytes_s : 16;
+    config_captured_s = 1;
     tick(); check_busy();
     if (seen_init_s || tag_s !== 0) $fatal(1, "Early init completion or uncleared old tag");
   endtask
@@ -113,6 +126,9 @@ module ascon_top_tb;
       @(negedge clock_s);
       enable_s = !(paused && cycle <= 18); init_s = 0; valid_s = 1; final_s = 1;
       key_s = ~key_value; nonce_s = ~nonce_value; data_s = '1; bytes_s = 31; associate_s = 0;
+      if (TEST_TRUNCATION) begin
+        truncate_s = !selected_truncate_s; tag_bytes_request_s = 31;
+      end
       tick();
       if (seen_init_s) begin
         if ((!paused && cycle != 15) || busy_s !== 0) $fatal(1, "Public init latency");
@@ -160,6 +176,9 @@ module ascon_top_tb;
       enable_s = !(paused && (cycle % 5 == 1 || cycle % 5 == 2));
       init_s = 1; final_s = 1; valid_s = 1; associate_s = !ad_value;
       bytes_s = 31; last_s = !last_value; data_s = ~value; key_s = '1; nonce_s = '1;
+      if (TEST_TRUNCATION) begin
+        truncate_s = 1; tag_bytes_request_s = 31;
+      end
       tick();
       if (seen_block_s) begin
         if ((!paused && cycle != latency) || busy_s !== 0 || expect_cipher_s ||
@@ -177,7 +196,9 @@ module ascon_top_tb;
     enable_s = 1; init_s = 0; valid_s = 0; final_s = 1;
     #1;
     if (final_ready_s !== 1) $fatal(1, "Public finalization not ready");
-    expected_tag_s = expected_tag; expect_tag_s = 1; seen_tag_s = 0;
+    expected_tag_s = '0;
+    for (int b = 0; b < captured_tag_bytes_s; b++) expected_tag_s[8*b +: 8] = expected_tag[8*b +: 8];
+    expect_tag_s = 1; seen_tag_s = 0;
     tick(); check_busy();
     if (seen_tag_s) $fatal(1, "Tag published on acceptance");
   endtask
@@ -203,6 +224,9 @@ module ascon_top_tb;
       @(negedge clock_s);
       enable_s = !(paused && (cycle % 5 == 1 || cycle % 5 == 2));
       init_s = 0; valid_s = 1; final_s = 1; key_s = '1; nonce_s = '1;
+      if (TEST_TRUNCATION) begin
+        truncate_s = 1; tag_bytes_request_s = 0;
+      end
       tick();
       if (seen_tag_s) begin
         if ((!paused && cycle != 17) || busy_s !== 0 || ready_s !== 0 || final_ready_s !== 0)
@@ -215,7 +239,7 @@ module ascon_top_tb;
     for (int cycle = 0; cycle < 5; cycle++) begin
       @(negedge clock_s); enable_s = cycle >= 2;
       tick();
-      if (tag_s !== expected_tag || tag_done_s !== 0 || ready_s !== 0 || final_ready_s !== 0 || busy_s !== 0)
+      if (tag_s !== expected_tag_s || tag_done_s !== 0 || ready_s !== 0 || final_ready_s !== 0 || busy_s !== 0)
         $fatal(1, "Public tag retention/repeated finalization");
     end
   endtask
@@ -272,15 +296,60 @@ module ascon_top_tb;
     end
   endtask
 
-  initial begin
+  task automatic check_invalid_config(input bit ad_value, data_present);
+    logic [127:0] held_tag, held_cipher;
+    logic [4:0] held_bytes;
+    held_tag = tag_s; held_cipher = cipher_s; held_bytes = tag_bytes_s;
+    for (int count = 0; count < 32; count++) begin
+      if (count >= 4 && count <= 16) continue;
+      @(negedge clock_s);
+      enable_s = 1; init_s = 1; valid_s = data_present; associate_s = ad_value; final_s = 1;
+      data_s = '1; bytes_s = 16; last_s = 1; truncate_s = 1; tag_bytes_request_s = 5'(count);
+      #1;
+      if (init_ready_s !== 0 || ready_s !== 0 || final_ready_s !== 0)
+        $fatal(1, "Invalid tag configuration acknowledged");
+      repeat (2) begin
+        tick();
+        if (busy_s !== 0 || init_done_s !== 0 || block_done_s !== 0 || ad_done_s !== 0 ||
+            pt_done_s !== 0 || tag_done_s !== 0 || cipher_valid_s !== 0 ||
+            tag_s !== held_tag || cipher_s !== held_cipher || tag_bytes_s !== held_bytes)
+          $fatal(1, "Invalid init changed state/configuration or consumed simultaneous input");
+      end
+      invalid_requests_s++;
+    end
+    // A valid, different configuration is also ignored if init is disabled.
+    @(negedge clock_s);
+    enable_s = 0; init_s = 1; valid_s = 1; final_s = 1;
+    truncate_s = 1; tag_bytes_request_s = captured_tag_bytes_s == 16 ? 4 : 16;
+    repeat (2) begin
+      tick();
+      if (init_ready_s !== 0 || busy_s !== 0 || tag_bytes_s !== held_bytes || tag_s !== held_tag)
+        $fatal(1, "Disabled init captured a tag configuration");
+    end
+    disabled_inits_s++;
+  endtask
+
+  task automatic check_default_mode(input logic [127:0] key_value, nonce_value, expected_tag);
+    int saved_bytes;
+    saved_bytes = selected_tag_bytes_s;
+    for (int option_id = 0; option_id < 2; option_id++) begin
+      selected_truncate_s = 0; selected_tag_bytes_s = option_id == 0 ? 0 : 31;
+      initialize(key_value, nonce_value, 0);
+      transfer('1, '0, 0, 1, 1, 0); transfer('1, '0, 0, 1, 0, 0);
+      finalize(expected_tag, 0, 0);
+      if (tag_bytes_s !== 16 || tag_s !== expected_tag) $fatal(1, "Default tag must remain 128 bits");
+    end
+    selected_truncate_s = 1; selected_tag_bytes_s = saved_bytes;
+    reset_and_check();
+  endtask
+
+  task automatic check_vectors;
     int fd, total, id, alen, plen, ad_count, pt_count, count, last;
     logic [127:0] key_value, nonce_value, value, expected_cipher, expected_tag;
     string trailing;
     bit paused;
-    repeat (2) @(negedge clock_s);
-    reset_and_check();
-    fd = $fopen("top.txt", "r"); actual_fd_s = $fopen("aead_actual.txt", "w");
-    if (!fd || !actual_fd_s || $fscanf(fd, "%d\n", total) != 1 || total != 1558) $fatal(1, "Public corpus header");
+    fd = $fopen("top.txt", "r");
+    if (!fd || $fscanf(fd, "%d\n", total) != 1 || total != 1558) $fatal(1, "Public corpus header");
     for (int sample = 0; sample < total; sample++) begin
       if ($fscanf(fd, "%d %d %d %d %d\n", id, alen, plen, ad_count, pt_count) != 5 || id != sample ||
           alen < 0 || alen > 256 || plen < 0 || plen > 256 ||
@@ -288,6 +357,7 @@ module ascon_top_tb;
         $fatal(1, "Malformed public vector");
       if ($fscanf(fd, "%h %h\n", key_value, nonce_value) != 2) $fatal(1, "Public key/nonce missing");
       initialize(key_value, nonce_value, sample % 23 == 0);
+      if (TEST_TRUNCATION && sample == 0) check_invalid_config(1, 1);
       paused = sample % 17 == 0;
       for (int index = 0; index < ad_count; index++) begin
         if ($fscanf(fd, "%d %d %h\n", count, last, value) != 3 ||
@@ -295,7 +365,10 @@ module ascon_top_tb;
           $fatal(1, "Malformed public AD transfer");
         transfer(value, '0, count, last != 0, 1, paused);
       end
-      $fwrite(actual_fd_s, "%0d %0d ", sample, plen+16); recording_s = 1;
+      if (TEST_TRUNCATION && sample == 0) check_invalid_config(0, 1);
+      if (TEST_TRUNCATION) $fwrite(actual_fd_s, "%0d %0d %0d ", cases_s, tag_bytes_s, plen+captured_tag_bytes_s);
+      else $fwrite(actual_fd_s, "%0d %0d ", sample, plen+16);
+      recording_s = 1;
       for (int index = 0; index < pt_count; index++) begin
         if ($fscanf(fd, "%d %d %h\n", count, last, value) != 3 || $fscanf(fd, "%h\n", expected_cipher) != 1 ||
             count != (plen == 0 ? 0 : plen-16*index >= 16 ? 16 : plen-16*index) || last != (index == pt_count-1))
@@ -309,24 +382,51 @@ module ascon_top_tb;
         transfer(value, expected_cipher, count, last != 0, 0, paused);
       end
       if ($fscanf(fd, "%h\n", expected_tag) != 1) $fatal(1, "Public tag missing");
+      if (TEST_TRUNCATION && sample == 0) check_invalid_config(0, 0);
       finalize(expected_tag, paused, sample % 5 == 0);
       recording_s = 0; $fwrite(actual_fd_s, "\n");
+      if (TEST_TRUNCATION && sample == 0) check_invalid_config(0, 1);
       if (sample == 0) check_initial_ad_final_aborts(key_value, nonce_value, expected_tag);
+      if (TEST_TRUNCATION && cases_s == 0) check_default_mode(key_value, nonce_value, expected_tag);
       cases_s++;
     end
     if ($fscanf(fd, "%s", trailing) != -1) $fatal(1, "Extra public vectors");
-    $fclose(fd); $fclose(actual_fd_s);
+    $fclose(fd);
+  endtask
+
+  initial begin
+    repeat (2) @(negedge clock_s);
     reset_and_check();
-    $display("[TOP] CASES: %0d", cases_s);
-    $display("[TOP] TAGS: %0d", tags_s);
-    $display("[TOP] CIPHER_BLOCKS: %0d", cipher_blocks_s);
-    $display("[TOP] ABORTS: %0d", aborts_s);
-    $display("[TOP] PASS");
+    actual_fd_s = $fopen(TEST_TRUNCATION ? "truncated_actual.txt" : "aead_actual.txt", "w");
+    if (!actual_fd_s) $fatal(1, "Cannot open public output records");
+    for (int profile = 0; profile < (TEST_TRUNCATION ? 13 : 1); profile++) begin
+      if (profile != 0) reset_and_check();
+      selected_truncate_s = TEST_TRUNCATION;
+      selected_tag_bytes_s = TEST_TRUNCATION ? 4 + profile : 16;
+      check_vectors();
+    end
+    $fclose(actual_fd_s);
+    reset_and_check();
+    if (TEST_TRUNCATION) begin
+      $display("[TRUNCATION] CASES: %0d", cases_s);
+      $display("[TRUNCATION] TAGS: %0d", tags_s);
+      $display("[TRUNCATION] CIPHER_BLOCKS: %0d", cipher_blocks_s);
+      $display("[TRUNCATION] INVALID_REQUESTS: %0d", invalid_requests_s);
+      $display("[TRUNCATION] DISABLED_INITS: %0d", disabled_inits_s);
+      $display("[TRUNCATION] ABORTS: %0d", aborts_s);
+      $display("[TRUNCATION] PASS");
+    end else begin
+      $display("[TOP] CASES: %0d", cases_s);
+      $display("[TOP] TAGS: %0d", tags_s);
+      $display("[TOP] CIPHER_BLOCKS: %0d", cipher_blocks_s);
+      $display("[TOP] ABORTS: %0d", aborts_s);
+      $display("[TOP] PASS");
+    end
     $finish;
   end
 
   initial begin
-    #20000000;
+    #100000000;
     $fatal(1, "Public interface watchdog timeout");
   end
 endmodule : ascon_top_tb
